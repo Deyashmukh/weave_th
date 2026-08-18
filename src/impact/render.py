@@ -31,6 +31,14 @@ AXIS_COLORS = {
 }
 LEAD_TIE_POINTS = 8.0
 
+WEIGHTS_FALLBACK = {
+    "blast_radius": 30,
+    "review_leverage": 25,
+    "force_multiplier": 20,
+    "unblocking_speed": 15,
+    "fix_forward": 10,
+}
+
 AXIS_COLORS_DARK = {
     "blast_radius": "#3987e5",
     "review_leverage": "#d95926",
@@ -43,32 +51,75 @@ AXIS_COLORS_DARK = {
 # What each axis measures and the exact arithmetic behind it. Single source of
 # truth: the hover tooltips, the panel rows and the footer method block all read
 # from here, so the published formula cannot drift from the one in axes.py.
-AXIS_META = {
-    "blast_radius": (
-        "Risk-weighted delivery on dangerous ground.",
-        "1.0 per PR merged to master, x3 on a CODEOWNERS path, x1.5 on a migration, "
-        "x(1 + 0.5 per owning team touched), x0.6 if declared fully autonomous.",
-    ),
-    "review_leverage": (
-        "Whose review judgement the codebase relies on.",
-        "1.0 per review given to another human, x3 on a CODEOWNERS path, x2 outside the "
-        "reviewer's own team, x1.5 for changes-requested, x(1 + threads/10). Bots excluded.",
-    ),
-    "force_multiplier": (
-        "Changes how everyone else, and every agent, works.",
-        "1.0 per governance or tooling file changed (AGENTS.md, SKILL.md, owners.yaml, "
-        "CODEOWNERS, CI, tools/, bin/, cli/), x2 when it governs a CODEOWNERS path.",
-    ),
-    "unblocking_speed": (
-        "Latency removed from other people's work.",
-        "Median hours from PR open to their review, inverted on a log scale. "
-        "Repo baseline: p25 1.5h, median 13.5h, p75 49.1h.",
-    ),
-    "fix_forward": (
-        "Repairs shipped code, especially code they did not write.",
-        "1.0 per fix() PR merged to master, x3 on a CODEOWNERS path, x2 when the path's "
-        "most recent feat() came from someone else. Reverts are too rare here to score.",
-    ),
+AXIS_META: dict[str, dict[str, str]] = {
+    "blast_radius": {
+        "short": "Risk-weighted delivery on dangerous ground.",
+        "captures": (
+            "Rewards moving dangerous ground, not moving a lot of ground. A change to "
+            "authentication or a ClickHouse migration counts far more than one to a "
+            "product surface, and a change spanning several teams' code counts more "
+            "than one confined to your own."
+        ),
+        "formula": (
+            "1.0 per PR merged to master  ×3 if it touches a CODEOWNERS path  "
+            "×1.5 if it is a migration  ×(1 + 0.5 per owning team touched)  "
+            "×0.6 if declared fully autonomous"
+        ),
+    },
+    "review_leverage": {
+        "short": "Whose review judgement the codebase relies on.",
+        "captures": (
+            "Reviewer assignment here is automated, so being asked carries no signal. "
+            "Choosing to review outside your own team's code does, and so does asking "
+            "for changes rather than approving. Bot reviewers are excluded entirely: "
+            "they outnumber the busiest human roughly 8 to 1."
+        ),
+        "formula": (
+            "1.0 per review given to another human  ×3 on a CODEOWNERS path  "
+            "×2 outside the reviewer's own team  ×1.5 for changes-requested  "
+            "×(1 + threads ÷ 10)"
+        ),
+    },
+    "force_multiplier": {
+        "short": "Changes how everyone else, and every agent, works.",
+        "captures": (
+            "Edits to the rules and tooling the whole repo runs on: AGENTS.md, the 238 "
+            "agent skills, ownership files, CI, and shared tooling. A merged skill is "
+            "executable governance — it changes what every agent in the repo does next. "
+            "None of this shows up in a feature count."
+        ),
+        "formula": (
+            "1.0 per governance or tooling file changed (AGENTS.md, SKILL.md, "
+            "owners.yaml, CODEOWNERS, .github/workflows, tools/, bin/, cli/)  "
+            "×2 when that file governs a CODEOWNERS path"
+        ),
+    },
+    "unblocking_speed": {
+        "short": "Latency removed from other people's work.",
+        "captures": (
+            "The highest-variance signal in the dataset. Shipping volume varies about "
+            "3× between engineers; review turnaround varies 33×. In a repo merging 150 "
+            "PRs a day, reviewing in 1.5 hours instead of 49 removes days of waiting "
+            "from other people's work while never appearing in your own PR count."
+        ),
+        "formula": (
+            "Median hours from PR opened to their review, inverted on a log scale.  "
+            "Repo baseline: p25 1.5h · median 13.5h · p75 49.1h"
+        ),
+    },
+    "fix_forward": {
+        "short": "Repairs shipped code, especially code they did not write.",
+        "captures": (
+            "Merging to master deploys to production, so repair work is real ownership. "
+            "Picking up someone else's breakage counts double. Reverts are not scored: "
+            "only 8 exist across 4,789 sampled PRs because PostHog fixes forward — "
+            "45.5% of merged PRs are fixes against 40.1% features."
+        ),
+        "formula": (
+            "1.0 per fix() PR merged to master  ×3 on a CODEOWNERS path  "
+            "×2 when the path's most recent feat() came from someone else"
+        ),
+    },
 }
 
 COMPOSITE_NOTE = (
@@ -166,31 +217,66 @@ def _card(engineer: dict[str, Any]) -> str:
 
 def _legend(weights: dict[str, float]) -> str:
     return "".join(
-        f'<span class="key" title="{html.escape(AXIS_META[n][0])}&#10;&#10;'
-        f'{html.escape(AXIS_META[n][1])}">'
+        f'<span class="key" title="{html.escape(AXIS_META[n]["short"])}">'
         f'<i style="background:var(--{n.replace("_", "-")})"></i>'
         f"{AXIS_LABELS[n]} <b>{int(weights[n])}</b></span>"
         for n in AXIS_LABELS
     )
 
 
-def _metrics_block(weights: dict[str, float]) -> str:
-    """One scannable row per axis; the full formula rides in the tooltip."""
-    return "".join(
-        f'<div class="mrow" title="{html.escape(AXIS_META[n][1])}">'
-        f'<i style="background:var(--{n.replace("_", "-")})"></i>'
-        f'<span class="mname">{AXIS_LABELS[n]}</span>'
-        f'<span class="mwt">{int(weights[n])}</span>'
-        f'<span class="mdesc">{html.escape(AXIS_META[n][0])}</span>'
-        f'<span class="mformula">{html.escape(AXIS_META[n][1])}</span></div>'
+def _summary_block() -> str:
+    """Fills the space under the lowest-ranked card with a quick metric key.
+
+    The full definitions and formulas live in the method section below the fold;
+    this is the at-a-glance version, so a reader knows what the five colours in
+    every bar actually mean without leaving the first screen.
+    """
+    rows = "".join(
+        f'<div class="sr"><i style="background:var(--{n.replace("_", "-")})"></i>'
+        f'<span class="srn">{AXIS_LABELS[n]}</span>'
+        f'<span class="srw">{int(WEIGHTS_FALLBACK.get(n, 0))}</span>'
+        f'<span class="srd">{html.escape(AXIS_META[n]["short"])}</span></div>'
         for n in AXIS_LABELS
+    )
+    return (
+        '<section class="summary"><div class="sh">What the five metrics mean'
+        '<span class="shx">full formulas below &darr;</span></div>'
+        f"{rows}</section>"
+    )
+
+
+def _method_block(weights: dict[str, float]) -> str:
+    """The full method, rendered into the column beneath the ranked cards.
+
+    Deliberately not a tooltip. Hover is unavailable on touch and invisible to
+    anyone who does not think to try it, and the method is the substance of this
+    analysis rather than a footnote to it.
+    """
+    rows = "".join(
+        f'<article class="mx">'
+        f'<div class="mxh"><i style="background:var(--{n.replace("_", "-")})"></i>'
+        f'<span class="mxn">{AXIS_LABELS[n]}</span>'
+        f'<span class="mxw">weight {int(weights[n])}</span>'
+        f'<span class="mxs">{html.escape(AXIS_META[n]["short"])}</span></div>'
+        f'<p class="mxc">{html.escape(AXIS_META[n]["captures"])}</p>'
+        f'<p class="mxf">{html.escape(AXIS_META[n]["formula"])}</p>'
+        f"</article>"
+        for n in AXIS_LABELS
+    )
+    return (
+        '<section class="method">'
+        "<h2>How each metric is calculated</h2>"
+        f'<p class="mxi">{html.escape(COMPOSITE_NOTE)}</p>'
+        '<p class="mxf mxfc">score = &Sigma; (weight &times; axis) &divide; 100</p>'
+        f'<div class="mxgrid">{rows}</div></section>'
     )
 
 
 def render(report: dict[str, Any]) -> str:
     totals, sens, weights = report["totals"], report["sensitivity"], report["weights"]
     cards = "".join(_card(e) for e in report["engineers"])
-    metrics = _metrics_block(weights)
+    method = _method_block(weights)
+    summary = _summary_block()
     caveats = "".join(f"<li>{html.escape(c)}</li>" for c in report["caveats"])
     stability = (
         f"Top 5 held across all {sens['variants_tested']} weight perturbations (±10)."
@@ -221,7 +307,7 @@ def render(report: dict[str, Any]) -> str:
   --text-primary:#ffffff; --text-secondary:#c3c2b7; --text-muted:#8e8c84;
 {_axis_vars(AXIS_COLORS_DARK)}}}
 *{{box-sizing:border-box}}
-body{{margin:0;height:100vh;overflow:hidden;display:grid;grid-template-rows:auto 1fr auto;
+body{{margin:0;min-height:100vh;
   background:var(--surface-0);color:var(--text-primary);
   font:14px/1.5 ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
   -webkit-font-smoothing:antialiased}}
@@ -233,7 +319,7 @@ h1{{margin:0;font-size:18px;letter-spacing:-.01em}}
 .key i{{width:10px;height:10px;border-radius:3px;display:inline-block;flex:none}}
 .key b{{color:var(--text-muted);font-weight:600;font-variant-numeric:tabular-nums}}
 main{{display:grid;grid-template-columns:1.2fr 1fr;gap:18px;padding:13px 24px;min-height:0}}
-.col{{display:flex;flex-direction:column;gap:8px;min-height:0;overflow-y:auto}}
+.col{{display:flex;flex-direction:column;gap:8px;min-height:0}}
 .card{{display:grid;grid-template-columns:30px 1fr auto;gap:14px;align-items:center;
   text-align:left;padding:9px 13px;border:1px solid var(--line);border-radius:10px;
   background:var(--surface-1);cursor:pointer;font:inherit;color:inherit;
@@ -268,9 +354,9 @@ main{{display:grid;grid-template-columns:1.2fr 1fr;gap:18px;padding:13px 24px;mi
 .ev em{{font-style:normal;color:var(--text-muted)}}
 footer{{padding:8px 24px 10px;background:var(--surface-1);border-top:1px solid var(--line);
   font-size:11.5px;color:var(--text-muted);display:grid;
-  grid-template-columns:minmax(230px,1fr) minmax(330px,1.25fr) minmax(250px,1.05fr);
+  grid-template-columns:minmax(250px,0.8fr) minmax(420px,1fr);
   gap:22px;align-items:start}}
-footer ul{{margin:3px 0 0;padding-left:14px}}
+footer ul{{margin:3px 0 0;padding-left:14px;columns:2;column-gap:20px}}
 footer li{{margin-bottom:2px}}
 footer p{{margin:0 0 3px}}
 .fcol{{min-width:0}}
@@ -279,13 +365,50 @@ footer p{{margin:0 0 3px}}
 .fx{{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;
   color:var(--text-secondary);margin:0 0 4px}}
 .fnote{{line-height:1.4}}
-.mrow{{display:grid;grid-template-columns:9px 92px 16px 1fr;gap:7px;align-items:baseline;
-  margin-bottom:3px;cursor:help}}
-.mrow i{{width:9px;height:9px;border-radius:2px;display:block;position:relative;top:1px}}
-.mname{{color:var(--text-secondary)}}
-.mwt{{color:var(--text-muted);font-variant-numeric:tabular-nums;text-align:right}}
-.mdesc{{line-height:1.35}}
-.mformula{{display:none}}
+/* Pinned to one viewport so the dashboard honours the brief; the evidence panel
+   scrolls inside it rather than growing the page. Genuinely small viewports get
+   an escape hatch below, because clipping a card is worse than scrolling. */
+.screen{{height:100vh;display:grid;grid-template-rows:auto 1fr auto;overflow:hidden}}
+@media (max-height: 780px) {{
+  .screen{{height:auto;overflow:visible}}
+}}
+.summary{{margin-top:8px;border:1px solid var(--line);border-radius:10px;
+  background:var(--surface-1);padding:7px 12px 8px}}
+.sh{{font-size:11.5px;font-weight:650;margin-bottom:4px;display:flex;
+  justify-content:space-between;align-items:baseline;gap:10px}}
+.shx{{font-weight:400;font-size:10.5px;color:var(--text-muted)}}
+.sr{{display:grid;grid-template-columns:10px 104px 20px 1fr;gap:8px;
+  align-items:baseline;font-size:11px;margin-bottom:1px}}
+.sr i{{width:9px;height:9px;border-radius:2px;display:block;position:relative;top:1px}}
+.srn{{color:var(--text-secondary)}}
+.srw{{color:var(--text-muted);font-variant-numeric:tabular-nums;text-align:right}}
+.srd{{color:var(--text-muted)}}
+.method{{padding:26px 24px 40px;border-top:1px solid var(--line);background:var(--surface-1)}}
+.method h2{{margin:0 0 6px;font-size:17px;letter-spacing:-.01em}}
+.mxi{{margin:0 0 6px;font-size:13px;color:var(--text-secondary);line-height:1.5;
+  max-width:760px}}
+.mxgrid{{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,400px),1fr));
+  gap:0 30px;margin-top:14px}}
+.mx{{padding:13px 0 14px;border-top:1px solid var(--line)}}
+.mxh{{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:5px}}
+.mxh i{{width:10px;height:10px;border-radius:3px;flex:none}}
+.mxn{{font-weight:650;font-size:13px}}
+.mxw{{font-size:10.5px;color:var(--text-muted);border:1px solid var(--line);
+  border-radius:20px;padding:1px 7px;white-space:nowrap}}
+.mxs{{font-size:12px;color:var(--text-secondary)}}
+.mxc{{margin:0 0 6px;font-size:12.5px;color:var(--text-secondary);line-height:1.5}}
+.mxf{{margin:0;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+  font-size:11.5px;line-height:1.6;color:var(--text-muted);
+  background:var(--surface-0);border-radius:6px;padding:7px 9px;
+  overflow-wrap:anywhere}}
+.mxfc{{margin-bottom:9px;color:var(--text-primary);font-size:12.5px}}
+
+/* Short viewports cannot fit the summary under the cards, and .screen clips
+   rather than scrolls, so half of it would vanish silently. Hide it outright;
+   the full method section below the fold still carries every definition. */
+@media (max-height: 860px) {{
+  .summary{{display:none}}
+}}
 
 /* Phones: the desktop layout is a fixed-height two-column grid with hover-only
    formulas. Touch never fires a title tooltip, so the formula is rendered inline
@@ -303,12 +426,11 @@ footer p{{margin:0 0 3px}}
   .score{{font-size:20px}}
   .axrow{{grid-template-columns:104px 1fr 32px}}
   footer{{grid-template-columns:1fr;gap:15px;padding:13px 15px 20px}}
-  .mrow{{grid-template-columns:9px 1fr auto;row-gap:1px}}
-  .mdesc{{grid-column:2 / -1}}
-  .mformula{{display:block;grid-column:2 / -1;color:var(--text-muted);
-    font-size:11px;line-height:1.35;margin-top:2px;opacity:.85}}
+  .method{{padding:12px 13px}}
+  .mxf{{font-size:11px}}
 }}
 </style></head><body>
+<div class="screen">
 <header>
   <h1>Who is most impactful in the PostHog repo</h1>
   <div class="sub">Impact is the risk a person absorbs and the leverage they create,
@@ -320,24 +442,20 @@ footer p{{margin:0 0 3px}}
   <div class="legend">{_legend(weights)}</div>
 </header>
 <main>
-  <div class="col" id="cards">{cards}</div>
+  <div class="col" id="cards">{cards}{summary}</div>
   <div class="panel" id="panel"></div>
 </main>
 <footer>
   <div class="fcol">
-    <span class="stab">How the score works</span>
-    <div class="fx">score = &Sigma; (weight &times; axis) &divide; 100</div>
-    <p class="fnote">{COMPOSITE_NOTE}</p>
-    <p class="fnote"><b>Sensitivity:</b> {html.escape(stability)}</p>
-  </div>
-  <div class="fcol">
-    <span class="stab">The five metrics <em class="hint">hover or tap for the formula</em></span>
-    {metrics}
+    <span class="stab">Sensitivity</span>
+    <p class="fnote">{html.escape(stability)}</p>
   </div>
   <div class="fcol">
     <span class="stab">Caveats</span><ul>{caveats}</ul>
   </div>
 </footer>
+</div>
+{method}
 <script id="report" type="application/json">{json.dumps(report)}</script>
 <script>
 const REPORT = JSON.parse(document.getElementById('report').textContent);

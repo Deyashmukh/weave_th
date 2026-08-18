@@ -123,23 +123,45 @@ def test_caveats_are_real_prose_not_placeholders() -> None:
         assert len(caveat) > 15, f"placeholder caveat leaked into the report: {caveat!r}"
 
 
-def test_every_axis_has_a_meaning_and_a_formula() -> None:
-    """AXIS_META is the single source of truth for tooltips, footer and panel."""
+def test_every_axis_has_a_definition_and_a_formula() -> None:
+    """AXIS_META is the single source for the page, the panel and the tooltips."""
     from impact.render import AXIS_LABELS, AXIS_META
 
     assert set(AXIS_META) == set(AXIS_LABELS)
-    for meaning, formula in AXIS_META.values():
-        assert len(meaning) > 20 and len(formula) > 40
+    for name, meta in AXIS_META.items():
+        assert set(meta) == {"short", "captures", "formula"}, name
+        assert len(meta["short"]) > 20, name
+        assert len(meta["captures"]) > 120, f"{name}: definition too thin to be clear"
+        assert len(meta["formula"]) > 40, name
 
 
-def test_formulas_are_published_in_the_page() -> None:
-    """The method has to be legible from the page itself, not only the spec."""
+def test_full_method_is_rendered_into_the_page_not_hidden_behind_hover() -> None:
+    """Hover is unavailable on touch and invisible to anyone who does not try it."""
     from impact.render import AXIS_META
 
     html = render(REPORT)
-    for _, formula in AXIS_META.values():
-        assert formula[:40] in html, f"formula missing from page: {formula[:40]!r}"
+    assert 'class="method"' in html
+    assert "How each metric is calculated" in html
+    for name, meta in AXIS_META.items():
+        assert meta["captures"][:60] in html, f"definition missing for {name}"
+        assert meta["formula"][:40] in html, f"formula missing for {name}"
     assert "score = &Sigma; (weight &times; axis) &divide; 100" in html
+
+
+def test_dashboard_occupies_exactly_one_screen_with_method_below() -> None:
+    """The brief asks the dashboard to fit one laptop screen.
+
+    That contract belongs to `.screen`, which is pinned to 100vh. The method
+    section deliberately sits outside it: a full explanation of five metrics
+    needs roughly 900px, and cramming it above the fold would make it less
+    clear, not more. Nested column-scrolling was the alternative and is worse.
+    """
+    html = render(REPORT)
+    assert '<div class="screen">' in html
+    assert ".screen{height:100vh;" in html
+    screen, below = html.split("</footer>", 1)
+    assert 'class="card"' in screen, "ranked cards must be inside the one-screen region"
+    assert 'class="method"' in below, "method must sit below the fold, not inside it"
 
 
 def test_mobile_breakpoint_exists_and_unlocks_scrolling() -> None:
@@ -149,8 +171,19 @@ def test_mobile_breakpoint_exists_and_unlocks_scrolling() -> None:
     assert "min-height:100vh" in html
 
 
-def test_formula_is_visible_without_hover_on_touch() -> None:
-    """Touch devices never fire a title tooltip, so the formula renders inline."""
+def test_method_grid_cannot_force_horizontal_overflow_on_a_phone() -> None:
+    """`minmax(400px, 1fr)` forces a 400px track on a 360px screen and overflows.
+
+    Wrapping the floor in min(100%, 400px) lets the track collapse instead. This
+    regressed once already when the method section moved to full width.
+    """
     html = render(REPORT)
-    assert ".mformula{display:none}" in html  # hidden on desktop, tooltip covers it
-    assert ".mformula{display:block" in html  # shown inside the mobile breakpoint
+    assert "minmax(min(100%,400px),1fr)" in html
+    assert "minmax(400px,1fr)" not in html
+
+
+def test_summary_key_is_hidden_rather_than_half_clipped() -> None:
+    """The screen is pinned to one viewport, so a partly-fitting block would be cut."""
+    html = render(REPORT)
+    assert "@media (max-height: 860px)" in html
+    assert "@media (max-height: 780px)" in html  # escape hatch: scroll, never clip

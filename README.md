@@ -29,10 +29,11 @@ justification"* — which makes the ~15 surviving paths PostHog's own statement 
 blast radius is real. Cross-team reach resolves against the 26 distributed `owners.yaml`
 files mapping paths to 33 teams.
 
-Every formula above is printed on the dashboard itself, in the footer, and each metric
-carries its full arithmetic on hover. On a phone the formulas render inline instead,
-because touch devices never fire a hover tooltip. The page reflows to a single column
-below 900px and scrolls normally there.
+**Every formula is printed on the page itself**, not hidden behind a tooltip. The
+dashboard occupies exactly one screen; scrolling past it reveals a full-width
+*How each metric is calculated* section giving, for all five metrics, what it means,
+what it is trying to capture, and the exact arithmetic. Nothing requires hovering,
+which also means it works on touch. The page reflows to one column below 900px.
 
 ## Why volume metrics fail on this repo specifically
 
