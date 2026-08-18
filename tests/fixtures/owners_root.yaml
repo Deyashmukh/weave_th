@@ -1,0 +1,14 @@
+version: 1
+owners: []
+rules:
+    - match:
+          - Dockerfile
+          - CLAUDE.md
+          - AGENTS.md
+      owners: team-devex
+    - match: '/frontend/src/lib/lemon-ui/'
+      owners: platform-ux
+    - match: '/services/llm-gateway/'
+      owners: team-ai-gateway
+    - match: '/posthog/settings/data_warehouse.py'
+      owners: team-data-stack

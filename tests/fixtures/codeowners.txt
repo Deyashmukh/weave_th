@@ -1,0 +1,12 @@
+# ClickHouse team owns Clickhouse migrations
+posthog/clickhouse/migrations/** @PostHog/clickhouse
+
+# HogQL team owns HogQL changes
+posthog/hogql/** @PostHog/hogql
+# ...except per-table schema definitions
+posthog/hogql/database/schema/**
+posthog/hogql/database/test/__snapshots__/test_database.ambr
+
+posthog/api/authentication.py @PostHog/team-security
+bin/dev-sandbox* @PostHog/team-security
+tools/owners/** @PostHog/team-security

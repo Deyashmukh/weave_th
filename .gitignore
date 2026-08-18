@@ -51,3 +51,6 @@ pnpm-debug.log*
 # --- Build output (both stacks) ---
 dist/
 build/
+
+# Raw GitHub pull (~96MB); regenerate with `uv run python -m impact.fetch`
+data/raw/

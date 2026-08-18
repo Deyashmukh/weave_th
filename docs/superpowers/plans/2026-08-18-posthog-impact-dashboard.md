@@ -373,7 +373,7 @@ FIX = Path(__file__).parent / "fixtures"
         ("feat(insights): add retention graph export", ("feat", "insights")),
         ("fix(cohorts): handle empty cohort", ("fix", "cohorts")),
         ("chore: update AGENTS.md instructions", ("chore", None)),
-        ("revert: \"feat(mcp) add skill discovery\"", ("revert", None)),
+        ('revert: "feat(mcp) add skill discovery"', ("revert", None)),
         ("Bump lodash from 1 to 2", ("unconventional", None)),
     ],
 )
@@ -400,7 +400,9 @@ def test_autonomy_absent_section() -> None:
 
 
 def _fixtures() -> list[dict[str, object]]:
-    return [json.loads(line) for line in (FIX / "prs_sample.jsonl").read_text().splitlines() if line]
+    return [
+        json.loads(line) for line in (FIX / "prs_sample.jsonl").read_text().splitlines() if line
+    ]
 
 
 def test_stack_layer_detected() -> None:
@@ -632,14 +634,23 @@ def _own():
 
 def _pr(**kw) -> PRFacts:
     base = dict(
-        number=1, title="feat(surveys): add response filter", author="alice",
+        number=1,
+        title="feat(surveys): add response filter",
+        author="alice",
         is_bot_author=False,
         created_at=datetime(2026, 6, 1, tzinfo=UTC),
         merged_at=datetime(2026, 6, 2, tzinfo=UTC),
-        base_ref="master", is_stack_layer=False,
-        pr_type="feat", scope=None, autonomy="human_driven",
-        paths=("products/surveys/backend/api.py",), files_truncated=False,
-        additions=10, deletions=2, review_threads=0, reviews=(),
+        base_ref="master",
+        is_stack_layer=False,
+        pr_type="feat",
+        scope=None,
+        autonomy="human_driven",
+        paths=("products/surveys/backend/api.py",),
+        files_truncated=False,
+        additions=10,
+        deletions=2,
+        review_threads=0,
+        reviews=(),
     )
     base.update(kw)
     return PRFacts(**base)  # type: ignore[arg-type]
@@ -846,20 +857,36 @@ def _own():
 
 
 def _rev(**kw) -> ReviewFacts:
-    base = dict(author="bob", is_bot=False, state="APPROVED",
-                submitted_at=CREATED + timedelta(hours=4), body_len=120)
+    base = dict(
+        author="bob",
+        is_bot=False,
+        state="APPROVED",
+        submitted_at=CREATED + timedelta(hours=4),
+        body_len=120,
+    )
     base.update(kw)
     return ReviewFacts(**base)  # type: ignore[arg-type]
 
 
 def _pr(**kw) -> PRFacts:
     base = dict(
-        number=1, title="feat(surveys): add response filter", author="alice",
-        is_bot_author=False, created_at=CREATED,
-        merged_at=CREATED + timedelta(days=1), base_ref="master", is_stack_layer=False,
-        pr_type="feat", scope=None, autonomy="human_driven",
-        paths=("products/surveys/backend/api.py",), files_truncated=False,
-        additions=10, deletions=2, review_threads=0, reviews=(),
+        number=1,
+        title="feat(surveys): add response filter",
+        author="alice",
+        is_bot_author=False,
+        created_at=CREATED,
+        merged_at=CREATED + timedelta(days=1),
+        base_ref="master",
+        is_stack_layer=False,
+        pr_type="feat",
+        scope=None,
+        autonomy="human_driven",
+        paths=("products/surveys/backend/api.py",),
+        files_truncated=False,
+        additions=10,
+        deletions=2,
+        review_threads=0,
+        reviews=(),
     )
     base.update(kw)
     return PRFacts(**base)  # type: ignore[arg-type]
@@ -1019,13 +1046,23 @@ def _own():
 
 def _pr(paths: tuple[str, ...], **kw) -> PRFacts:
     base = dict(
-        number=1, title="feat(surveys): add response filter", author="alice",
+        number=1,
+        title="feat(surveys): add response filter",
+        author="alice",
         is_bot_author=False,
         created_at=datetime(2026, 6, 1, tzinfo=UTC),
         merged_at=datetime(2026, 6, 2, tzinfo=UTC),
-        base_ref="master", is_stack_layer=False, pr_type="chore", scope=None,
-        autonomy="human_driven", paths=paths, files_truncated=False,
-        additions=5, deletions=1, review_threads=0, reviews=(),
+        base_ref="master",
+        is_stack_layer=False,
+        pr_type="chore",
+        scope=None,
+        autonomy="human_driven",
+        paths=paths,
+        files_truncated=False,
+        additions=5,
+        deletions=1,
+        review_threads=0,
+        reviews=(),
     )
     base.update(kw)
     return PRFacts(**base)  # type: ignore[arg-type]
@@ -1079,8 +1116,13 @@ Expected: FAIL — `ImportError: cannot import name 'force_multiplier'`
 
 ```python
 GOVERNANCE_BASENAMES = (
-    "AGENTS.md", "SKILL.md", "owners.yaml", "CODEOWNERS",
-    "AI_POLICY.md", "CONTRIBUTING.md", "pull_request_template.md",
+    "AGENTS.md",
+    "SKILL.md",
+    "owners.yaml",
+    "CODEOWNERS",
+    "AI_POLICY.md",
+    "CONTRIBUTING.md",
+    "pull_request_template.md",
 )
 TOOLING_PREFIXES = (".github/workflows/", "tools/", "bin/", "cli/")
 GOVERNS_CRITICAL_MULTIPLIER = 2.0
@@ -1246,9 +1288,7 @@ def test_composite_is_the_weighted_sum_of_normalized_axes() -> None:
 
 
 def test_sensitivity_reports_a_stable_top_five() -> None:
-    axis_scores = {
-        name: {f"e{i}": float(100 - i * 10) for i in range(8)} for name in WEIGHTS
-    }
+    axis_scores = {name: {f"e{i}": float(100 - i * 10) for i in range(8)} for name in WEIGHTS}
     result = sensitivity(axis_scores, WEIGHTS)
     assert result["stable"] is True
     assert result["top5"] == ["e0", "e1", "e2", "e3", "e4"]
@@ -1262,14 +1302,12 @@ def test_sensitivity_detects_an_unstable_ranking() -> None:
     it would have passed against a sensitivity() hardcoded to return True.
     """
     names = list(WEIGHTS)
-    axis_scores: dict[str, dict[str, float]] = {
-        n: {f"e{i}": 50.0 for i in range(8)} for n in names
-    }
+    axis_scores: dict[str, dict[str, float]] = {n: {f"e{i}": 50.0 for i in range(8)} for n in names}
     for n in names:
         axis_scores[n]["eA"] = 0.0
         axis_scores[n]["eB"] = 0.0
-    axis_scores[names[0]]["eA"] = 100.0   # strongest on the heaviest axis
-    axis_scores[names[3]]["eB"] = 100.0   # strongest on a light axis
+    axis_scores[names[0]]["eA"] = 100.0  # strongest on the heaviest axis
+    axis_scores[names[3]]["eB"] = 100.0  # strongest on a light axis
     result = sensitivity(axis_scores, WEIGHTS)
     assert result["stable"] is False
     assert result["churn"]
@@ -1507,8 +1545,14 @@ def fetch_ownership(dest: Path) -> None:
     """Pull CODEOWNERS and every distributed owners.yaml."""
     dest.mkdir(parents=True, exist_ok=True)
     (dest / "CODEOWNERS").write_text(
-        _gh(["api", "repos/PostHog/posthog/contents/.github/CODEOWNERS",
-             "-H", "Accept: application/vnd.github.raw"])
+        _gh(
+            [
+                "api",
+                "repos/PostHog/posthog/contents/.github/CODEOWNERS",
+                "-H",
+                "Accept: application/vnd.github.raw",
+            ]
+        )
     )
     tree = json.loads(_gh(["api", "repos/PostHog/posthog/git/trees/master?recursive=1"]))
     owners_dir = dest / "owners"
@@ -1516,8 +1560,14 @@ def fetch_ownership(dest: Path) -> None:
     for node in tree["tree"]:
         path = node["path"]
         if path.endswith("owners.yaml"):
-            body = _gh(["api", f"repos/PostHog/posthog/contents/{path}",
-                        "-H", "Accept: application/vnd.github.raw"])
+            body = _gh(
+                [
+                    "api",
+                    f"repos/PostHog/posthog/contents/{path}",
+                    "-H",
+                    "Accept: application/vnd.github.raw",
+                ]
+            )
             (owners_dir / path.replace("/", "__")).write_text(body)
 
 
@@ -1689,9 +1739,7 @@ def build_report(raw_path: Path, ownership_dir: Path) -> dict[str, Any]:
     latencies: dict[str, list[float]] = defaultdict(list)
     pr_counts: Counter[str] = Counter()
     review_counts: Counter[str] = Counter()
-    evidence: dict[str, dict[str, list[dict[str, Any]]]] = defaultdict(
-        lambda: defaultdict(list)
-    )
+    evidence: dict[str, dict[str, list[dict[str, Any]]]] = defaultdict(lambda: defaultdict(list))
     prior_feat_author: dict[str, str] = {}
 
     for pr in prs:
@@ -1767,9 +1815,11 @@ def build_report(raw_path: Path, ownership_dir: Path) -> dict[str, Any]:
         # NOT min(mergedAt): the fetch kept PRs merged from 2026-04-20 but only
         # walked back to updatedAt 2026-04-28, so coverage before that is partial.
         # Reporting the earliest merge would claim completeness we do not have.
-        "window": {"start": COMPLETE_FROM,
-                   "end": max(p.merged_at for p in prs).isoformat(),
-                   "days": 112},
+        "window": {
+            "start": COMPLETE_FROM,
+            "end": max(p.merged_at for p in prs).isoformat(),
+            "days": 112,
+        },
         "totals": {
             "prs_fetched": len(prs),
             "merged_to_master": sum(1 for p in prs if not p.is_stack_layer),
@@ -1873,18 +1923,41 @@ import re
 from impact.render import AXIS_COLORS, render, why_line
 
 REPORT = {
-    "window": {"start": "2026-04-28T00:00:00+00:00", "end": "2026-08-18T00:00:00+00:00", "days": 112},
-    "totals": {"prs_fetched": 15159, "merged_to_master": 14800, "stack_layers_excluded": 359,
-               "bot_authored_excluded": 900, "eligible_engineers": 140,
-               "eligibility_fallback_fired": False},
-    "weights": {"blast_radius": 30.0, "review_leverage": 25.0, "force_multiplier": 20.0,
-                "unblocking_speed": 15.0, "fix_forward": 10.0},
+    "window": {
+        "start": "2026-04-28T00:00:00+00:00",
+        "end": "2026-08-18T00:00:00+00:00",
+        "days": 112,
+    },
+    "totals": {
+        "prs_fetched": 15159,
+        "merged_to_master": 14800,
+        "stack_layers_excluded": 359,
+        "bot_authored_excluded": 900,
+        "eligible_engineers": 140,
+        "eligibility_fallback_fired": False,
+    },
+    "weights": {
+        "blast_radius": 30.0,
+        "review_leverage": 25.0,
+        "force_multiplier": 20.0,
+        "unblocking_speed": 15.0,
+        "fix_forward": 10.0,
+    },
     "engineers": [
-        {"login": "alice", "composite": 88.2, "rank": 1,
-         "axes": {"blast_radius": 90.0, "review_leverage": 80.0, "force_multiplier": 95.0,
-                  "unblocking_speed": 70.0, "fix_forward": 60.0},
-         "raw": {"merged_prs": 120, "reviews_given": 200, "median_review_hours": 2.4},
-         "evidence": {"blast_radius": [{"number": 1, "title": "feat(hogql): x", "score": 9.0}]}},
+        {
+            "login": "alice",
+            "composite": 88.2,
+            "rank": 1,
+            "axes": {
+                "blast_radius": 90.0,
+                "review_leverage": 80.0,
+                "force_multiplier": 95.0,
+                "unblocking_speed": 70.0,
+                "fix_forward": 60.0,
+            },
+            "raw": {"merged_prs": 120, "reviews_given": 200, "median_review_hours": 2.4},
+            "evidence": {"blast_radius": [{"number": 1, "title": "feat(hogql): x", "score": 9.0}]},
+        },
     ],
     "all_ranked": [{"login": "alice", "composite": 88.2}],
     "sensitivity": {"top5": ["alice"], "stable": True, "variants_tested": 32, "churn": []},
@@ -1922,8 +1995,13 @@ def test_dark_mode_declares_its_own_steps_under_both_scopes() -> None:
 
 def test_legend_labels_every_axis_so_colour_is_never_alone() -> None:
     html = render(REPORT)
-    for label in ("Blast radius", "Review leverage", "Force multiplier",
-                  "Unblocking speed", "Fix-forward"):
+    for label in (
+        "Blast radius",
+        "Review leverage",
+        "Force multiplier",
+        "Unblocking speed",
+        "Fix-forward",
+    ):
         assert label in html
 
 
@@ -2040,7 +2118,7 @@ def _card(engineer: dict[str, Any]) -> str:
 def _legend(weights: dict[str, float]) -> str:
     return "".join(
         f'<span class="key"><i style="background:var(--{n.replace("_", "-")})"></i>'
-        f'{AXIS_LABELS[n]} <b>{int(weights[n])}</b></span>'
+        f"{AXIS_LABELS[n]} <b>{int(weights[n])}</b></span>"
         for n in AXIS_LABELS
     )
 
