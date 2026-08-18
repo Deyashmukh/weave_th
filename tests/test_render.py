@@ -121,3 +121,36 @@ def test_caveats_are_real_prose_not_placeholders() -> None:
     assert callable(build_report)
     for caveat in REPORT["caveats"]:
         assert len(caveat) > 15, f"placeholder caveat leaked into the report: {caveat!r}"
+
+
+def test_every_axis_has_a_meaning_and_a_formula() -> None:
+    """AXIS_META is the single source of truth for tooltips, footer and panel."""
+    from impact.render import AXIS_LABELS, AXIS_META
+
+    assert set(AXIS_META) == set(AXIS_LABELS)
+    for meaning, formula in AXIS_META.values():
+        assert len(meaning) > 20 and len(formula) > 40
+
+
+def test_formulas_are_published_in_the_page() -> None:
+    """The method has to be legible from the page itself, not only the spec."""
+    from impact.render import AXIS_META
+
+    html = render(REPORT)
+    for _, formula in AXIS_META.values():
+        assert formula[:40] in html, f"formula missing from page: {formula[:40]!r}"
+    assert "score = &Sigma; (weight &times; axis) &divide; 100" in html
+
+
+def test_mobile_breakpoint_exists_and_unlocks_scrolling() -> None:
+    """Desktop pins height to 100vh with overflow hidden, which would trap a phone."""
+    html = render(REPORT)
+    assert "@media (max-width: 900px)" in html
+    assert "min-height:100vh" in html
+
+
+def test_formula_is_visible_without_hover_on_touch() -> None:
+    """Touch devices never fire a title tooltip, so the formula renders inline."""
+    html = render(REPORT)
+    assert ".mformula{display:none}" in html  # hidden on desktop, tooltip covers it
+    assert ".mformula{display:block" in html  # shown inside the mobile breakpoint

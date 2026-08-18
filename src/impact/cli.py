@@ -154,22 +154,18 @@ def build_report(raw_path: Path, ownership_dir: Path) -> dict[str, Any]:
         "engineers": engineers[:TOP_N],
         "all_ranked": [{"login": e["login"], "composite": e["composite"]} for e in engineers],
         "sensitivity": sens,
+        # Kept short on purpose: the dashboard is one screen, and long prose here
+        # clipped the ranked cards. The full-length versions live in the spec.
+        # One line each: the footer's tallest column sets its height, and longer
+        # caveats pushed the ranked cards off the bottom of the screen. Full
+        # wording is in docs/superpowers/specs/.
         "caveats": [
-            "GitHub org membership is 92% private (27 of a much larger org are "
-            "visible), so employee vs community contributor is inferred from "
-            "whether an author has ever given a review, not known.",
-            "Bot actors are excluded via GraphQL __typename, never name matching. "
-            "Machine reviewers outnumber the busiest human roughly 8:1 here.",
-            "Stack layers (PRs based on a non-master branch) are excluded as "
-            "unshipped; PostHog encourages stacking, so PR count would punish "
-            "good decomposition.",
-            "Fully autonomous PRs are discounted per PostHog's AI_POLICY.md. One "
-            "account merges 19.7 PRs/day with 56.9% declared autonomous, so axis "
-            "totals are log-scaled to stop it setting the scale for everyone.",
-            "Ranks 3-5 are within a few points and the sensitivity check reports "
-            "them unstable. Treat them as a cluster, not an ordering.",
-            "Work outside this repository is invisible here: design, incident "
-            "command, the Support Hero rotation, and mentoring leave no PR trace.",
+            "Org membership is 92% private, so contributor type is inferred.",
+            "Bots excluded by __typename; they outnumber human reviewers 8:1.",
+            "Stack layers excluded; PostHog encourages stacking, so counts mislead.",
+            "Axis totals log-scaled so one 19.7 PRs/day account cannot set the scale.",
+            "Ranks 3-5 are a cluster, not an ordering.",
+            "Work outside this repo is invisible: design, incidents, support rotation.",
         ],
     }
 

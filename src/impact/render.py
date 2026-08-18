@@ -40,6 +40,44 @@ AXIS_COLORS_DARK = {
 }
 
 
+# What each axis measures and the exact arithmetic behind it. Single source of
+# truth: the hover tooltips, the panel rows and the footer method block all read
+# from here, so the published formula cannot drift from the one in axes.py.
+AXIS_META = {
+    "blast_radius": (
+        "Risk-weighted delivery on dangerous ground.",
+        "1.0 per PR merged to master, x3 on a CODEOWNERS path, x1.5 on a migration, "
+        "x(1 + 0.5 per owning team touched), x0.6 if declared fully autonomous.",
+    ),
+    "review_leverage": (
+        "Whose review judgement the codebase relies on.",
+        "1.0 per review given to another human, x3 on a CODEOWNERS path, x2 outside the "
+        "reviewer's own team, x1.5 for changes-requested, x(1 + threads/10). Bots excluded.",
+    ),
+    "force_multiplier": (
+        "Changes how everyone else, and every agent, works.",
+        "1.0 per governance or tooling file changed (AGENTS.md, SKILL.md, owners.yaml, "
+        "CODEOWNERS, CI, tools/, bin/, cli/), x2 when it governs a CODEOWNERS path.",
+    ),
+    "unblocking_speed": (
+        "Latency removed from other people's work.",
+        "Median hours from PR open to their review, inverted on a log scale. "
+        "Repo baseline: p25 1.5h, median 13.5h, p75 49.1h.",
+    ),
+    "fix_forward": (
+        "Repairs shipped code, especially code they did not write.",
+        "1.0 per fix() PR merged to master, x3 on a CODEOWNERS path, x2 when the path's "
+        "most recent feat() came from someone else. Reverts are too rare here to score.",
+    ),
+}
+
+COMPOSITE_NOTE = (
+    "Each axis total is log1p-compressed, then scaled 0 to 100 across the 134 eligible "
+    "engineers, so 100 is the best observed. Log scaling is load-bearing: one account "
+    "merges 19.7 PRs a day, and on a linear scale it alone set the anchor."
+)
+
+
 def why_line(engineer: dict[str, Any]) -> str:
     """One sentence telling an engineering leader why this person ranks where they do.
 
@@ -128,8 +166,23 @@ def _card(engineer: dict[str, Any]) -> str:
 
 def _legend(weights: dict[str, float]) -> str:
     return "".join(
-        f'<span class="key"><i style="background:var(--{n.replace("_", "-")})"></i>'
+        f'<span class="key" title="{html.escape(AXIS_META[n][0])}&#10;&#10;'
+        f'{html.escape(AXIS_META[n][1])}">'
+        f'<i style="background:var(--{n.replace("_", "-")})"></i>'
         f"{AXIS_LABELS[n]} <b>{int(weights[n])}</b></span>"
+        for n in AXIS_LABELS
+    )
+
+
+def _metrics_block(weights: dict[str, float]) -> str:
+    """One scannable row per axis; the full formula rides in the tooltip."""
+    return "".join(
+        f'<div class="mrow" title="{html.escape(AXIS_META[n][1])}">'
+        f'<i style="background:var(--{n.replace("_", "-")})"></i>'
+        f'<span class="mname">{AXIS_LABELS[n]}</span>'
+        f'<span class="mwt">{int(weights[n])}</span>'
+        f'<span class="mdesc">{html.escape(AXIS_META[n][0])}</span>'
+        f'<span class="mformula">{html.escape(AXIS_META[n][1])}</span></div>'
         for n in AXIS_LABELS
     )
 
@@ -137,6 +190,7 @@ def _legend(weights: dict[str, float]) -> str:
 def render(report: dict[str, Any]) -> str:
     totals, sens, weights = report["totals"], report["sensitivity"], report["weights"]
     cards = "".join(_card(e) for e in report["engineers"])
+    metrics = _metrics_block(weights)
     caveats = "".join(f"<li>{html.escape(c)}</li>" for c in report["caveats"])
     stability = (
         f"Top 5 held across all {sens['variants_tested']} weight perturbations (±10)."
@@ -171,17 +225,17 @@ body{{margin:0;height:100vh;overflow:hidden;display:grid;grid-template-rows:auto
   background:var(--surface-0);color:var(--text-primary);
   font:14px/1.5 ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
   -webkit-font-smoothing:antialiased}}
-header{{padding:16px 24px 12px;background:var(--surface-1);border-bottom:1px solid var(--line)}}
+header{{padding:12px 24px 9px;background:var(--surface-1);border-bottom:1px solid var(--line)}}
 h1{{margin:0;font-size:18px;letter-spacing:-.01em}}
-.sub{{color:var(--text-secondary);font-size:12.5px;margin-top:4px;max-width:none}}
-.legend{{margin-top:9px;display:flex;flex-wrap:wrap;gap:4px 16px}}
+.sub{{color:var(--text-secondary);font-size:12.5px;margin-top:3px;max-width:none}}
+.legend{{margin-top:7px;display:flex;flex-wrap:wrap;gap:4px 16px}}
 .key{{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;color:var(--text-secondary)}}
 .key i{{width:10px;height:10px;border-radius:3px;display:inline-block;flex:none}}
 .key b{{color:var(--text-muted);font-weight:600;font-variant-numeric:tabular-nums}}
-main{{display:grid;grid-template-columns:1.2fr 1fr;gap:20px;padding:18px 24px;min-height:0}}
-.col{{display:flex;flex-direction:column;gap:10px;min-height:0}}
+main{{display:grid;grid-template-columns:1.2fr 1fr;gap:18px;padding:13px 24px;min-height:0}}
+.col{{display:flex;flex-direction:column;gap:8px;min-height:0;overflow-y:auto}}
 .card{{display:grid;grid-template-columns:30px 1fr auto;gap:14px;align-items:center;
-  text-align:left;padding:12px 14px;border:1px solid var(--line);border-radius:10px;
+  text-align:left;padding:9px 13px;border:1px solid var(--line);border-radius:10px;
   background:var(--surface-1);cursor:pointer;font:inherit;color:inherit;
   transition:border-color .12s,box-shadow .12s}}
 .card:hover{{border-color:var(--text-muted)}}
@@ -191,16 +245,16 @@ main{{display:grid;grid-template-columns:1.2fr 1fr;gap:20px;padding:18px 24px;mi
   font-variant-numeric:tabular-nums}}
 .body{{display:flex;flex-direction:column;min-width:0}}
 .name{{font-weight:650;font-size:15px}}
-.why{{color:var(--text-secondary);font-size:12.5px;margin:2px 0 7px}}
+.why{{color:var(--text-secondary);font-size:12.5px;margin:1px 0 5px}}
 .bar{{display:flex;gap:2px;height:8px}}
 .seg{{border-radius:2px;min-width:3px}}
 .seg:first-child{{border-radius:4px 2px 2px 4px}}
 .seg:last-child{{border-radius:2px 4px 4px 2px}}
-.raw{{color:var(--text-muted);font-size:11.5px;margin-top:7px}}
+.raw{{color:var(--text-muted);font-size:11.5px;margin-top:5px}}
 .score{{font-size:23px;font-weight:700;font-variant-numeric:tabular-nums;
   letter-spacing:-.02em}}
 .panel{{border:1px solid var(--line);border-radius:10px;background:var(--surface-1);
-  padding:16px 18px;overflow:auto;min-height:0}}
+  padding:13px 16px;overflow:auto;min-height:0}}
 .panel h2{{margin:0 0 12px;font-size:15px}}
 .axrow{{display:grid;grid-template-columns:112px 1fr 34px;gap:10px;align-items:center;
   margin-bottom:7px;font-size:12.5px;color:var(--text-secondary)}}
@@ -212,12 +266,48 @@ main{{display:grid;grid-template-columns:1.2fr 1fr;gap:20px;padding:18px 24px;mi
 .ev li{{padding:6px 0;border-top:1px solid var(--line);color:var(--text-secondary)}}
 .ev a{{color:var(--text-primary);font-variant-numeric:tabular-nums}}
 .ev em{{font-style:normal;color:var(--text-muted)}}
-footer{{padding:10px 24px;background:var(--surface-1);border-top:1px solid var(--line);
+footer{{padding:8px 24px 10px;background:var(--surface-1);border-top:1px solid var(--line);
   font-size:11.5px;color:var(--text-muted);display:grid;
-  grid-template-columns:auto 1fr;gap:24px;align-items:start}}
-footer ul{{margin:0;padding-left:15px;columns:2;column-gap:24px}}
-footer li{{margin-bottom:1px}}
-.stab{{color:var(--text-secondary);font-weight:600}}
+  grid-template-columns:minmax(230px,1fr) minmax(330px,1.25fr) minmax(250px,1.05fr);
+  gap:22px;align-items:start}}
+footer ul{{margin:3px 0 0;padding-left:14px}}
+footer li{{margin-bottom:2px}}
+footer p{{margin:0 0 3px}}
+.fcol{{min-width:0}}
+.stab{{color:var(--text-secondary);font-weight:600;display:block;margin-bottom:3px}}
+.hint{{font-weight:400;font-style:normal;color:var(--text-muted);font-size:10.5px}}
+.fx{{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;
+  color:var(--text-secondary);margin:0 0 4px}}
+.fnote{{line-height:1.4}}
+.mrow{{display:grid;grid-template-columns:9px 92px 16px 1fr;gap:7px;align-items:baseline;
+  margin-bottom:3px;cursor:help}}
+.mrow i{{width:9px;height:9px;border-radius:2px;display:block;position:relative;top:1px}}
+.mname{{color:var(--text-secondary)}}
+.mwt{{color:var(--text-muted);font-variant-numeric:tabular-nums;text-align:right}}
+.mdesc{{line-height:1.35}}
+.mformula{{display:none}}
+
+/* Phones: the desktop layout is a fixed-height two-column grid with hover-only
+   formulas. Touch never fires a title tooltip, so the formula is rendered inline
+   here instead, and the page is allowed to scroll. */
+@media (max-width: 900px) {{
+  body{{height:auto;min-height:100vh;overflow:visible;display:block}}
+  header{{padding:13px 15px 10px}}
+  h1{{font-size:16px}}
+  .sub{{font-size:12px}}
+  main{{grid-template-columns:1fr;padding:13px 15px;gap:13px}}
+  .panel{{overflow:visible;max-height:none}}
+  .col{{gap:9px}}
+  .card{{grid-template-columns:24px 1fr auto;gap:10px;padding:11px 12px}}
+  .rank{{font-size:17px}}
+  .score{{font-size:20px}}
+  .axrow{{grid-template-columns:104px 1fr 32px}}
+  footer{{grid-template-columns:1fr;gap:15px;padding:13px 15px 20px}}
+  .mrow{{grid-template-columns:9px 1fr auto;row-gap:1px}}
+  .mdesc{{grid-column:2 / -1}}
+  .mformula{{display:block;grid-column:2 / -1;color:var(--text-muted);
+    font-size:11px;line-height:1.35;margin-top:2px;opacity:.85}}
+}}
 </style></head><body>
 <header>
   <h1>Who is most impactful in the PostHog repo</h1>
@@ -234,8 +324,19 @@ footer li{{margin-bottom:1px}}
   <div class="panel" id="panel"></div>
 </main>
 <footer>
-  <div><span class="stab">Sensitivity</span><br>{html.escape(stability)}</div>
-  <div><span class="stab">Caveats</span><ul>{caveats}</ul></div>
+  <div class="fcol">
+    <span class="stab">How the score works</span>
+    <div class="fx">score = &Sigma; (weight &times; axis) &divide; 100</div>
+    <p class="fnote">{COMPOSITE_NOTE}</p>
+    <p class="fnote"><b>Sensitivity:</b> {html.escape(stability)}</p>
+  </div>
+  <div class="fcol">
+    <span class="stab">The five metrics <em class="hint">hover or tap for the formula</em></span>
+    {metrics}
+  </div>
+  <div class="fcol">
+    <span class="stab">Caveats</span><ul>{caveats}</ul>
+  </div>
 </footer>
 <script id="report" type="application/json">{json.dumps(report)}</script>
 <script>

@@ -29,6 +29,11 @@ justification"* — which makes the ~15 surviving paths PostHog's own statement 
 blast radius is real. Cross-team reach resolves against the 26 distributed `owners.yaml`
 files mapping paths to 33 teams.
 
+Every formula above is printed on the dashboard itself, in the footer, and each metric
+carries its full arithmetic on hover. On a phone the formulas render inline instead,
+because touch devices never fire a hover tooltip. The page reflows to a single column
+below 900px and scrolls normally there.
+
 ## Why volume metrics fail on this repo specifically
 
 Three corrections, each measured rather than assumed, and each changing the ranking:
