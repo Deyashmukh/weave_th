@@ -34,7 +34,7 @@
 | `src/impact/render.py` | Scored data → single self-contained `dashboard/index.html` |
 | `src/impact/cli.py` | Wires the stages together; the only module doing file I/O |
 | `tests/fixtures/` | Committed slices of real CODEOWNERS/owners.yaml/PR JSON |
-| `dashboard/index.html` | Built artifact, committed so hosting is a file drop |
+| `docs/index.html` | Built artifact. GitHub Pages serves root or /docs only, so it lives here |
 
 Files split by responsibility, not layer. `ownership` and `classify` are independently useful and independently testable; `axes` depends on both but does no I/O, which is what makes the scoring logic cheap to test.
 
@@ -2271,15 +2271,14 @@ Expected: 8 passed
 
 ```bash
 cd ~/weave_th
-mkdir -p dashboard
 uv run python -c "
 import json, pathlib
 from impact.render import render
 report = json.loads(pathlib.Path('data/scored.json').read_text())
-pathlib.Path('dashboard/index.html').write_text(render(report))
-print('bytes:', pathlib.Path('dashboard/index.html').stat().st_size)
+pathlib.Path('docs/index.html').write_text(render(report))
+print('bytes:', pathlib.Path('docs/index.html').stat().st_size)
 "
-open dashboard/index.html
+open docs/index.html
 ```
 
 The validator checks colour, not layout. Confirm by eye at 1440×900: no vertical
