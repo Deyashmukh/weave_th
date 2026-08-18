@@ -29,11 +29,10 @@ justification"* — which makes the ~15 surviving paths PostHog's own statement 
 blast radius is real. Cross-team reach resolves against the 26 distributed `owners.yaml`
 files mapping paths to 33 teams.
 
-**Every formula is printed on the page itself**, not hidden behind a tooltip. The
-dashboard occupies exactly one screen; scrolling past it reveals a full-width
-*How each metric is calculated* section giving, for all five metrics, what it means,
-what it is trying to capture, and the exact arithmetic. Nothing requires hovering,
-which also means it works on touch. The page reflows to one column below 900px.
+Under the ranked cards sits a **metric key**: five chips, one per metric. Hovering a
+chip previews that metric's definition and exact formula in the pane below; clicking
+pins it, so touch devices and keyboard users reach the same detail. The whole
+dashboard stays within one laptop screen, and reflows to a single column below 900px.
 
 ## Why volume metrics fail on this repo specifically
 

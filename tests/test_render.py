@@ -135,33 +135,38 @@ def test_every_axis_has_a_definition_and_a_formula() -> None:
         assert len(meta["formula"]) > 40, name
 
 
-def test_full_method_is_rendered_into_the_page_not_hidden_behind_hover() -> None:
-    """Hover is unavailable on touch and invisible to anyone who does not try it."""
+def test_every_metric_detail_is_embedded_for_the_interactive_pane() -> None:
+    """The pane is driven client-side, so all five definitions ship in the page."""
     from impact.render import AXIS_META
 
     html = render(REPORT)
-    assert 'class="method"' in html
-    assert "How each metric is calculated" in html
     for name, meta in AXIS_META.items():
         assert meta["captures"][:60] in html, f"definition missing for {name}"
         assert meta["formula"][:40] in html, f"formula missing for {name}"
-    assert "score = &Sigma; (weight &times; axis) &divide; 100" in html
 
 
-def test_dashboard_occupies_exactly_one_screen_with_method_below() -> None:
-    """The brief asks the dashboard to fit one laptop screen.
+def test_metric_rows_are_buttons_so_touch_and_keyboard_both_reach_them() -> None:
+    """Hover alone would strand phone users and anyone navigating by keyboard."""
+    html = render(REPORT)
+    assert html.count('class="sr" data-metric=') == 5
+    assert "addEventListener('mouseenter'" in html
+    assert "addEventListener('click'" in html
+    assert "addEventListener('focus'" in html
 
-    That contract belongs to `.screen`, which is pinned to 100vh. The method
-    section deliberately sits outside it: a full explanation of five metrics
-    needs roughly 900px, and cramming it above the fold would make it less
-    clear, not more. Nested column-scrolling was the alternative and is worse.
-    """
+
+def test_detail_pane_flexes_into_leftover_space() -> None:
+    """Space under the last card varies by viewport, so the pane cannot be fixed-height."""
+    html = render(REPORT)
+    assert ".sdetail{flex:1;min-height:0;overflow:auto" in html
+    assert '<div class="sdetail" id="sdetail">' in html
+
+
+def test_dashboard_occupies_exactly_one_screen() -> None:
+    """The brief asks the dashboard to fit one laptop screen."""
     html = render(REPORT)
     assert '<div class="screen">' in html
     assert ".screen{height:100vh;" in html
-    screen, below = html.split("</footer>", 1)
-    assert 'class="card"' in screen, "ranked cards must be inside the one-screen region"
-    assert 'class="method"' in below, "method must sit below the fold, not inside it"
+    assert "@media (max-height: 780px)" in html  # escape hatch: scroll, never clip
 
 
 def test_mobile_breakpoint_exists_and_unlocks_scrolling() -> None:
@@ -171,19 +176,12 @@ def test_mobile_breakpoint_exists_and_unlocks_scrolling() -> None:
     assert "min-height:100vh" in html
 
 
-def test_method_grid_cannot_force_horizontal_overflow_on_a_phone() -> None:
-    """`minmax(400px, 1fr)` forces a 400px track on a 360px screen and overflows.
+def test_mobile_releases_the_pinned_screen_not_just_the_body() -> None:
+    """`.screen` pins 100vh with overflow:hidden; releasing only `body` still clips.
 
-    Wrapping the floor in min(100%, 400px) lets the track collapse instead. This
-    regressed once already when the method section moved to full width.
+    This regressed once: the phone layout reported a page height exactly equal to
+    the viewport, meaning everything past the first screen had been discarded.
     """
     html = render(REPORT)
-    assert "minmax(min(100%,400px),1fr)" in html
-    assert "minmax(400px,1fr)" not in html
-
-
-def test_summary_key_is_hidden_rather_than_half_clipped() -> None:
-    """The screen is pinned to one viewport, so a partly-fitting block would be cut."""
-    html = render(REPORT)
-    assert "@media (max-height: 860px)" in html
-    assert "@media (max-height: 780px)" in html  # escape hatch: scroll, never clip
+    mobile = html.split("@media (max-width: 900px)", 1)[1]
+    assert ".screen{height:auto;overflow:visible" in mobile

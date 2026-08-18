@@ -55,69 +55,57 @@ AXIS_META: dict[str, dict[str, str]] = {
     "blast_radius": {
         "short": "Risk-weighted delivery on dangerous ground.",
         "captures": (
-            "Rewards moving dangerous ground, not moving a lot of ground. A change to "
-            "authentication or a ClickHouse migration counts far more than one to a "
-            "product surface, and a change spanning several teams' code counts more "
-            "than one confined to your own."
+            "Rewards moving dangerous ground rather than a lot of it. A change to authentication "
+            "or a ClickHouse migration counts far more than one to a product surface."
         ),
         "formula": (
-            "1.0 per PR merged to master  ×3 if it touches a CODEOWNERS path  "
-            "×1.5 if it is a migration  ×(1 + 0.5 per owning team touched)  "
-            "×0.6 if declared fully autonomous"
+            "1.0 per PR merged to master  ×3 if it touches a CODEOWNERS path  ×1.5 if it is a "
+            "migration  ×(1 + 0.5 per owning team touched)  ×0.6 if declared fully autonomous"
         ),
     },
     "review_leverage": {
         "short": "Whose review judgement the codebase relies on.",
         "captures": (
-            "Reviewer assignment here is automated, so being asked carries no signal. "
-            "Choosing to review outside your own team's code does, and so does asking "
-            "for changes rather than approving. Bot reviewers are excluded entirely: "
-            "they outnumber the busiest human roughly 8 to 1."
+            "Reviewer assignment is automated here, so being asked carries no signal. Choosing to "
+            "review outside your own team's code does, and so does requesting changes."
         ),
         "formula": (
-            "1.0 per review given to another human  ×3 on a CODEOWNERS path  "
-            "×2 outside the reviewer's own team  ×1.5 for changes-requested  "
-            "×(1 + threads ÷ 10)"
+            "1.0 per review given to another human  ×3 on a CODEOWNERS path  ×2 outside the "
+            "reviewer's own team  ×1.5 for changes-requested  ×(1 + threads ÷ 10)"
         ),
     },
     "force_multiplier": {
         "short": "Changes how everyone else, and every agent, works.",
         "captures": (
-            "Edits to the rules and tooling the whole repo runs on: AGENTS.md, the 238 "
-            "agent skills, ownership files, CI, and shared tooling. A merged skill is "
-            "executable governance — it changes what every agent in the repo does next. "
-            "None of this shows up in a feature count."
+            "Edits to the rules and tooling the whole repo runs on. A merged skill is executable "
+            "governance: it changes what every agent in the repo does next."
         ),
         "formula": (
-            "1.0 per governance or tooling file changed (AGENTS.md, SKILL.md, "
-            "owners.yaml, CODEOWNERS, .github/workflows, tools/, bin/, cli/)  "
-            "×2 when that file governs a CODEOWNERS path"
+            "1.0 per governance or tooling file changed (AGENTS.md, SKILL.md, owners.yaml, "
+            "CODEOWNERS, .github/workflows, tools/, bin/, cli/)  ×2 when that file governs a "
+            "CODEOWNERS path"
         ),
     },
     "unblocking_speed": {
         "short": "Latency removed from other people's work.",
         "captures": (
-            "The highest-variance signal in the dataset. Shipping volume varies about "
-            "3× between engineers; review turnaround varies 33×. In a repo merging 150 "
-            "PRs a day, reviewing in 1.5 hours instead of 49 removes days of waiting "
-            "from other people's work while never appearing in your own PR count."
+            "The highest-variance signal here. Shipping volume varies about 3x between engineers; "
+            "review turnaround varies 33x, and never shows in your own PR count."
         ),
         "formula": (
-            "Median hours from PR opened to their review, inverted on a log scale.  "
-            "Repo baseline: p25 1.5h · median 13.5h · p75 49.1h"
+            "Median hours from PR opened to their review, inverted on a log scale.  Repo "
+            "baseline: p25 1.5h · median 13.5h · p75 49.1h"
         ),
     },
     "fix_forward": {
         "short": "Repairs shipped code, especially code they did not write.",
         "captures": (
-            "Merging to master deploys to production, so repair work is real ownership. "
-            "Picking up someone else's breakage counts double. Reverts are not scored: "
-            "only 8 exist across 4,789 sampled PRs because PostHog fixes forward — "
-            "45.5% of merged PRs are fixes against 40.1% features."
+            "Merging to master deploys to production, so repair work is real ownership. Reverts "
+            "are not scored: only 8 exist in 4,789 sampled PRs, because PostHog fixes forward."
         ),
         "formula": (
-            "1.0 per fix() PR merged to master  ×3 on a CODEOWNERS path  "
-            "×2 when the path's most recent feat() came from someone else"
+            "1.0 per fix() PR merged to master  ×3 on a CODEOWNERS path  ×2 when the path's most "
+            "recent feat() came from someone else"
         ),
     },
 }
@@ -224,59 +212,34 @@ def _legend(weights: dict[str, float]) -> str:
     )
 
 
-def _summary_block() -> str:
-    """Fills the space under the lowest-ranked card with a quick metric key.
+def _summary_block(weights: dict[str, float]) -> str:
+    """Interactive metric key that fills the space beneath the lowest-ranked card.
 
-    The full definitions and formulas live in the method section below the fold;
-    this is the at-a-glance version, so a reader knows what the five colours in
-    every bar actually mean without leaving the first screen.
+    Chips rather than rows: five stacked rows plus a readable detail pane did not
+    fit under the cards, and the one-line summary belongs in the pane anyway. The
+    pane keeps a guaranteed minimum height so it is never crushed to nothing.
     """
     rows = "".join(
-        f'<div class="sr"><i style="background:var(--{n.replace("_", "-")})"></i>'
+        f'<button class="sr" data-metric="{n}" aria-current="false">'
+        f'<i style="background:var(--{n.replace("_", "-")})"></i>'
         f'<span class="srn">{AXIS_LABELS[n]}</span>'
-        f'<span class="srw">{int(WEIGHTS_FALLBACK.get(n, 0))}</span>'
-        f'<span class="srd">{html.escape(AXIS_META[n]["short"])}</span></div>'
+        f'<span class="srw">{int(weights[n])}</span></button>'
         for n in AXIS_LABELS
     )
     return (
-        '<section class="summary"><div class="sh">What the five metrics mean'
-        '<span class="shx">full formulas below &darr;</span></div>'
-        f"{rows}</section>"
-    )
-
-
-def _method_block(weights: dict[str, float]) -> str:
-    """The full method, rendered into the column beneath the ranked cards.
-
-    Deliberately not a tooltip. Hover is unavailable on touch and invisible to
-    anyone who does not think to try it, and the method is the substance of this
-    analysis rather than a footnote to it.
-    """
-    rows = "".join(
-        f'<article class="mx">'
-        f'<div class="mxh"><i style="background:var(--{n.replace("_", "-")})"></i>'
-        f'<span class="mxn">{AXIS_LABELS[n]}</span>'
-        f'<span class="mxw">weight {int(weights[n])}</span>'
-        f'<span class="mxs">{html.escape(AXIS_META[n]["short"])}</span></div>'
-        f'<p class="mxc">{html.escape(AXIS_META[n]["captures"])}</p>'
-        f'<p class="mxf">{html.escape(AXIS_META[n]["formula"])}</p>'
-        f"</article>"
-        for n in AXIS_LABELS
-    )
-    return (
-        '<section class="method">'
-        "<h2>How each metric is calculated</h2>"
-        f'<p class="mxi">{html.escape(COMPOSITE_NOTE)}</p>'
-        '<p class="mxf mxfc">score = &Sigma; (weight &times; axis) &divide; 100</p>'
-        f'<div class="mxgrid">{rows}</div></section>'
+        '<section class="summary">'
+        '<div class="sh">What the five metrics mean'
+        '<span class="shx">hover or click a metric</span></div>'
+        f'<div class="srlist">{rows}</div>'
+        '<div class="sdetail" id="sdetail"></div>'
+        "</section>"
     )
 
 
 def render(report: dict[str, Any]) -> str:
     totals, sens, weights = report["totals"], report["sensitivity"], report["weights"]
     cards = "".join(_card(e) for e in report["engineers"])
-    method = _method_block(weights)
-    summary = _summary_block()
+    summary = _summary_block(weights)
     caveats = "".join(f"<li>{html.escape(c)}</li>" for c in report["caveats"])
     stability = (
         f"Top 5 held across all {sens['variants_tested']} weight perturbations (±10)."
@@ -311,7 +274,7 @@ body{{margin:0;min-height:100vh;
   background:var(--surface-0);color:var(--text-primary);
   font:14px/1.5 ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
   -webkit-font-smoothing:antialiased}}
-header{{padding:12px 24px 9px;background:var(--surface-1);border-bottom:1px solid var(--line)}}
+header{{padding:10px 24px 8px;background:var(--surface-1);border-bottom:1px solid var(--line)}}
 h1{{margin:0;font-size:18px;letter-spacing:-.01em}}
 .sub{{color:var(--text-secondary);font-size:12.5px;margin-top:3px;max-width:none}}
 .legend{{margin-top:7px;display:flex;flex-wrap:wrap;gap:4px 16px}}
@@ -319,9 +282,9 @@ h1{{margin:0;font-size:18px;letter-spacing:-.01em}}
 .key i{{width:10px;height:10px;border-radius:3px;display:inline-block;flex:none}}
 .key b{{color:var(--text-muted);font-weight:600;font-variant-numeric:tabular-nums}}
 main{{display:grid;grid-template-columns:1.2fr 1fr;gap:18px;padding:13px 24px;min-height:0}}
-.col{{display:flex;flex-direction:column;gap:8px;min-height:0}}
+.col{{display:flex;flex-direction:column;gap:7px;min-height:0;overflow-y:auto}}
 .card{{display:grid;grid-template-columns:30px 1fr auto;gap:14px;align-items:center;
-  text-align:left;padding:9px 13px;border:1px solid var(--line);border-radius:10px;
+  text-align:left;padding:6px 11px;border:1px solid var(--line);border-radius:10px;
   background:var(--surface-1);cursor:pointer;font:inherit;color:inherit;
   transition:border-color .12s,box-shadow .12s}}
 .card:hover{{border-color:var(--text-muted)}}
@@ -330,13 +293,13 @@ main{{display:grid;grid-template-columns:1.2fr 1fr;gap:18px;padding:13px 24px;mi
 .rank{{font-size:20px;font-weight:700;color:var(--text-muted);text-align:center;
   font-variant-numeric:tabular-nums}}
 .body{{display:flex;flex-direction:column;min-width:0}}
-.name{{font-weight:650;font-size:15px}}
-.why{{color:var(--text-secondary);font-size:12.5px;margin:1px 0 5px}}
+.name{{font-weight:650;font-size:14.5px}}
+.why{{color:var(--text-secondary);font-size:12.5px;margin:0 0 4px}}
 .bar{{display:flex;gap:2px;height:8px}}
 .seg{{border-radius:2px;min-width:3px}}
 .seg:first-child{{border-radius:4px 2px 2px 4px}}
 .seg:last-child{{border-radius:2px 4px 4px 2px}}
-.raw{{color:var(--text-muted);font-size:11.5px;margin-top:5px}}
+.raw{{color:var(--text-muted);font-size:11px;margin-top:3px}}
 .score{{font-size:23px;font-weight:700;font-variant-numeric:tabular-nums;
   letter-spacing:-.02em}}
 .panel{{border:1px solid var(--line);border-radius:10px;background:var(--surface-1);
@@ -352,11 +315,53 @@ main{{display:grid;grid-template-columns:1.2fr 1fr;gap:18px;padding:13px 24px;mi
 .ev li{{padding:6px 0;border-top:1px solid var(--line);color:var(--text-secondary)}}
 .ev a{{color:var(--text-primary);font-variant-numeric:tabular-nums}}
 .ev em{{font-style:normal;color:var(--text-muted)}}
+footer{{padding:7px 24px 9px;background:var(--surface-1);border-top:1px solid var(--line);
+  font-size:11.5px;color:var(--text-muted);display:grid;
+  grid-template-columns:minmax(230px,0.6fr) minmax(560px,1fr);
+  gap:22px;align-items:start}}
+footer ul{{margin:3px 0 0;padding-left:14px;columns:3;column-gap:18px}}
+footer li{{margin-bottom:2px}}
+footer p{{margin:0 0 3px}}
+.fcol{{min-width:0}}
+.stab{{color:var(--text-secondary);font-weight:600;display:block;margin-bottom:3px}}
+.hint{{font-weight:400;font-style:normal;color:var(--text-muted);font-size:10.5px}}
+.fx{{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;
+  color:var(--text-secondary);margin:0 0 4px}}
+.fnote{{line-height:1.4}}
+/* Pinned to one viewport so the dashboard honours the brief; the evidence panel
+   scrolls inside it rather than growing the page. Genuinely small viewports get
+   an escape hatch below, because clipping a card is worse than scrolling. */
+.screen{{height:100vh;display:grid;grid-template-rows:auto 1fr auto;overflow:hidden}}
+@media (max-height: 780px) {{
+  .screen{{height:auto;overflow:visible}}
+}}
+.summary{{margin-top:8px;border:1px solid var(--line);border-radius:10px;
+  background:var(--surface-1);padding:8px 12px 9px;flex:none;min-height:142px;
+  display:flex;flex-direction:column}}
+.sh{{font-size:11.5px;font-weight:650;margin-bottom:5px;display:flex;
+  justify-content:space-between;align-items:baseline;gap:10px;flex:none}}
+.shx{{font-weight:400;font-size:10.5px;color:var(--text-muted)}}
+.srlist{{flex:none;display:flex;flex-wrap:wrap;gap:4px}}
+.sr{{display:inline-flex;align-items:center;gap:6px;font:inherit;font-size:11px;
+  color:var(--text-secondary);background:var(--surface-0);border:1px solid transparent;
+  padding:3px 9px;border-radius:20px;cursor:pointer;line-height:1.3}}
+.sr:hover{{border-color:var(--text-muted)}}
+.sr[aria-current="true"]{{border-color:var(--text-primary);color:var(--text-primary)}}
+.sr i{{width:9px;height:9px;border-radius:2px;display:block;flex:none}}
+.srn{{white-space:nowrap}}
+.srw{{color:var(--text-muted);font-variant-numeric:tabular-nums;font-size:10.5px}}
+.sdetail{{flex:1;min-height:0;overflow:auto;margin-top:6px;padding-top:6px;
+  border-top:1px solid var(--line)}}
+.sdc{{margin:0 0 6px;font-size:12px;color:var(--text-secondary);line-height:1.5}}
+.sdf{{margin:0;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;
+  line-height:1.55;color:var(--text-muted);background:var(--surface-0);
+  border-radius:6px;padding:6px 8px;overflow-wrap:anywhere}}
+.sdh{{font-size:11px;color:var(--text-muted);margin:0 0 5px}}
 footer{{padding:8px 24px 10px;background:var(--surface-1);border-top:1px solid var(--line);
   font-size:11.5px;color:var(--text-muted);display:grid;
-  grid-template-columns:minmax(250px,0.8fr) minmax(420px,1fr);
+  grid-template-columns:minmax(230px,0.6fr) minmax(560px,1fr);
   gap:22px;align-items:start}}
-footer ul{{margin:3px 0 0;padding-left:14px;columns:2;column-gap:20px}}
+footer ul{{margin:3px 0 0;padding-left:14px;columns:3;column-gap:18px}}
 footer li{{margin-bottom:2px}}
 footer p{{margin:0 0 3px}}
 .fcol{{min-width:0}}
@@ -383,38 +388,18 @@ footer p{{margin:0 0 3px}}
 .srn{{color:var(--text-secondary)}}
 .srw{{color:var(--text-muted);font-variant-numeric:tabular-nums;text-align:right}}
 .srd{{color:var(--text-muted)}}
-.method{{padding:26px 24px 40px;border-top:1px solid var(--line);background:var(--surface-1)}}
-.method h2{{margin:0 0 6px;font-size:17px;letter-spacing:-.01em}}
-.mxi{{margin:0 0 6px;font-size:13px;color:var(--text-secondary);line-height:1.5;
-  max-width:760px}}
-.mxgrid{{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,400px),1fr));
-  gap:0 30px;margin-top:14px}}
-.mx{{padding:13px 0 14px;border-top:1px solid var(--line)}}
-.mxh{{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:5px}}
-.mxh i{{width:10px;height:10px;border-radius:3px;flex:none}}
-.mxn{{font-weight:650;font-size:13px}}
-.mxw{{font-size:10.5px;color:var(--text-muted);border:1px solid var(--line);
-  border-radius:20px;padding:1px 7px;white-space:nowrap}}
-.mxs{{font-size:12px;color:var(--text-secondary)}}
-.mxc{{margin:0 0 6px;font-size:12.5px;color:var(--text-secondary);line-height:1.5}}
-.mxf{{margin:0;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
-  font-size:11.5px;line-height:1.6;color:var(--text-muted);
-  background:var(--surface-0);border-radius:6px;padding:7px 9px;
-  overflow-wrap:anywhere}}
-.mxfc{{margin-bottom:9px;color:var(--text-primary);font-size:12.5px}}
 
 /* Short viewports cannot fit the summary under the cards, and .screen clips
    rather than scrolls, so half of it would vanish silently. Hide it outright;
    the full method section below the fold still carries every definition. */
-@media (max-height: 860px) {{
-  .summary{{display:none}}
-}}
-
 /* Phones: the desktop layout is a fixed-height two-column grid with hover-only
    formulas. Touch never fires a title tooltip, so the formula is rendered inline
    here instead, and the page is allowed to scroll. */
 @media (max-width: 900px) {{
   body{{height:auto;min-height:100vh;overflow:visible;display:block}}
+  /* .screen pins 100vh and clips on desktop; on a phone that would hide
+     everything past the first viewport, so release it here too. */
+  .screen{{height:auto;overflow:visible;display:block}}
   header{{padding:13px 15px 10px}}
   h1{{font-size:16px}}
   .sub{{font-size:12px}}
@@ -426,8 +411,9 @@ footer p{{margin:0 0 3px}}
   .score{{font-size:20px}}
   .axrow{{grid-template-columns:104px 1fr 32px}}
   footer{{grid-template-columns:1fr;gap:15px;padding:13px 15px 20px}}
-  .method{{padding:12px 13px}}
-  .mxf{{font-size:11px}}
+  .summary{{min-height:0}}
+  .sdetail{{overflow:visible}}
+  .srd{{white-space:normal}}
 }}
 </style></head><body>
 <div class="screen">
@@ -455,11 +441,12 @@ footer p{{margin:0 0 3px}}
   </div>
 </footer>
 </div>
-{method}
 <script id="report" type="application/json">{json.dumps(report)}</script>
 <script>
 const REPORT = JSON.parse(document.getElementById('report').textContent);
 const LABELS = {json.dumps(AXIS_LABELS)};
+const META = {json.dumps(AXIS_META, ensure_ascii=False)};
+const WEIGHTS = {json.dumps(WEIGHTS_FALLBACK)};
 const panel = document.getElementById('panel');
 
 function show(login) {{
@@ -483,6 +470,28 @@ function show(login) {{
 
 document.querySelectorAll('.card').forEach(c =>
   c.addEventListener('click', () => show(c.dataset.login)));
+
+// Metric key: hover previews, click pins. Pinning matters on touch, where
+// there is no hover at all, and for anyone reading a long formula.
+const detail = document.getElementById('sdetail');
+const rows = [...document.querySelectorAll('.sr')];
+let pinned = rows[0].dataset.metric;
+
+function showMetric(key) {{
+  const m = META[key];
+  rows.forEach(r => r.setAttribute('aria-current', String(r.dataset.metric === key)));
+  detail.innerHTML = `<p class="sdh"><b>${{LABELS[key]}}</b> &middot; weight ${{WEIGHTS[key]}}
+    &middot; ${{m.short}}</p><p class="sdc">${{m.captures}}</p><p class="sdf">${{m.formula}}</p>`;
+}}
+
+rows.forEach(r => {{
+  r.addEventListener('mouseenter', () => showMetric(r.dataset.metric));
+  r.addEventListener('focus', () => showMetric(r.dataset.metric));
+  r.addEventListener('click', () => {{ pinned = r.dataset.metric; showMetric(pinned); }});
+}});
+document.querySelector('.summary')
+  .addEventListener('mouseleave', () => showMetric(pinned));
+showMetric(pinned);
 if (REPORT.engineers.length) show(REPORT.engineers[0].login);
 </script>
 </body></html>"""

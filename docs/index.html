@@ -40,7 +40,7 @@ body{margin:0;min-height:100vh;
   background:var(--surface-0);color:var(--text-primary);
   font:14px/1.5 ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
   -webkit-font-smoothing:antialiased}
-header{padding:12px 24px 9px;background:var(--surface-1);border-bottom:1px solid var(--line)}
+header{padding:10px 24px 8px;background:var(--surface-1);border-bottom:1px solid var(--line)}
 h1{margin:0;font-size:18px;letter-spacing:-.01em}
 .sub{color:var(--text-secondary);font-size:12.5px;margin-top:3px;max-width:none}
 .legend{margin-top:7px;display:flex;flex-wrap:wrap;gap:4px 16px}
@@ -48,9 +48,9 @@ h1{margin:0;font-size:18px;letter-spacing:-.01em}
 .key i{width:10px;height:10px;border-radius:3px;display:inline-block;flex:none}
 .key b{color:var(--text-muted);font-weight:600;font-variant-numeric:tabular-nums}
 main{display:grid;grid-template-columns:1.2fr 1fr;gap:18px;padding:13px 24px;min-height:0}
-.col{display:flex;flex-direction:column;gap:8px;min-height:0}
+.col{display:flex;flex-direction:column;gap:7px;min-height:0;overflow-y:auto}
 .card{display:grid;grid-template-columns:30px 1fr auto;gap:14px;align-items:center;
-  text-align:left;padding:9px 13px;border:1px solid var(--line);border-radius:10px;
+  text-align:left;padding:6px 11px;border:1px solid var(--line);border-radius:10px;
   background:var(--surface-1);cursor:pointer;font:inherit;color:inherit;
   transition:border-color .12s,box-shadow .12s}
 .card:hover{border-color:var(--text-muted)}
@@ -59,13 +59,13 @@ main{display:grid;grid-template-columns:1.2fr 1fr;gap:18px;padding:13px 24px;min
 .rank{font-size:20px;font-weight:700;color:var(--text-muted);text-align:center;
   font-variant-numeric:tabular-nums}
 .body{display:flex;flex-direction:column;min-width:0}
-.name{font-weight:650;font-size:15px}
-.why{color:var(--text-secondary);font-size:12.5px;margin:1px 0 5px}
+.name{font-weight:650;font-size:14.5px}
+.why{color:var(--text-secondary);font-size:12.5px;margin:0 0 4px}
 .bar{display:flex;gap:2px;height:8px}
 .seg{border-radius:2px;min-width:3px}
 .seg:first-child{border-radius:4px 2px 2px 4px}
 .seg:last-child{border-radius:2px 4px 4px 2px}
-.raw{color:var(--text-muted);font-size:11.5px;margin-top:5px}
+.raw{color:var(--text-muted);font-size:11px;margin-top:3px}
 .score{font-size:23px;font-weight:700;font-variant-numeric:tabular-nums;
   letter-spacing:-.02em}
 .panel{border:1px solid var(--line);border-radius:10px;background:var(--surface-1);
@@ -81,11 +81,53 @@ main{display:grid;grid-template-columns:1.2fr 1fr;gap:18px;padding:13px 24px;min
 .ev li{padding:6px 0;border-top:1px solid var(--line);color:var(--text-secondary)}
 .ev a{color:var(--text-primary);font-variant-numeric:tabular-nums}
 .ev em{font-style:normal;color:var(--text-muted)}
+footer{padding:7px 24px 9px;background:var(--surface-1);border-top:1px solid var(--line);
+  font-size:11.5px;color:var(--text-muted);display:grid;
+  grid-template-columns:minmax(230px,0.6fr) minmax(560px,1fr);
+  gap:22px;align-items:start}
+footer ul{margin:3px 0 0;padding-left:14px;columns:3;column-gap:18px}
+footer li{margin-bottom:2px}
+footer p{margin:0 0 3px}
+.fcol{min-width:0}
+.stab{color:var(--text-secondary);font-weight:600;display:block;margin-bottom:3px}
+.hint{font-weight:400;font-style:normal;color:var(--text-muted);font-size:10.5px}
+.fx{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;
+  color:var(--text-secondary);margin:0 0 4px}
+.fnote{line-height:1.4}
+/* Pinned to one viewport so the dashboard honours the brief; the evidence panel
+   scrolls inside it rather than growing the page. Genuinely small viewports get
+   an escape hatch below, because clipping a card is worse than scrolling. */
+.screen{height:100vh;display:grid;grid-template-rows:auto 1fr auto;overflow:hidden}
+@media (max-height: 780px) {
+  .screen{height:auto;overflow:visible}
+}
+.summary{margin-top:8px;border:1px solid var(--line);border-radius:10px;
+  background:var(--surface-1);padding:8px 12px 9px;flex:none;min-height:142px;
+  display:flex;flex-direction:column}
+.sh{font-size:11.5px;font-weight:650;margin-bottom:5px;display:flex;
+  justify-content:space-between;align-items:baseline;gap:10px;flex:none}
+.shx{font-weight:400;font-size:10.5px;color:var(--text-muted)}
+.srlist{flex:none;display:flex;flex-wrap:wrap;gap:4px}
+.sr{display:inline-flex;align-items:center;gap:6px;font:inherit;font-size:11px;
+  color:var(--text-secondary);background:var(--surface-0);border:1px solid transparent;
+  padding:3px 9px;border-radius:20px;cursor:pointer;line-height:1.3}
+.sr:hover{border-color:var(--text-muted)}
+.sr[aria-current="true"]{border-color:var(--text-primary);color:var(--text-primary)}
+.sr i{width:9px;height:9px;border-radius:2px;display:block;flex:none}
+.srn{white-space:nowrap}
+.srw{color:var(--text-muted);font-variant-numeric:tabular-nums;font-size:10.5px}
+.sdetail{flex:1;min-height:0;overflow:auto;margin-top:6px;padding-top:6px;
+  border-top:1px solid var(--line)}
+.sdc{margin:0 0 6px;font-size:12px;color:var(--text-secondary);line-height:1.5}
+.sdf{margin:0;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;
+  line-height:1.55;color:var(--text-muted);background:var(--surface-0);
+  border-radius:6px;padding:6px 8px;overflow-wrap:anywhere}
+.sdh{font-size:11px;color:var(--text-muted);margin:0 0 5px}
 footer{padding:8px 24px 10px;background:var(--surface-1);border-top:1px solid var(--line);
   font-size:11.5px;color:var(--text-muted);display:grid;
-  grid-template-columns:minmax(250px,0.8fr) minmax(420px,1fr);
+  grid-template-columns:minmax(230px,0.6fr) minmax(560px,1fr);
   gap:22px;align-items:start}
-footer ul{margin:3px 0 0;padding-left:14px;columns:2;column-gap:20px}
+footer ul{margin:3px 0 0;padding-left:14px;columns:3;column-gap:18px}
 footer li{margin-bottom:2px}
 footer p{margin:0 0 3px}
 .fcol{min-width:0}
@@ -112,38 +154,18 @@ footer p{margin:0 0 3px}
 .srn{color:var(--text-secondary)}
 .srw{color:var(--text-muted);font-variant-numeric:tabular-nums;text-align:right}
 .srd{color:var(--text-muted)}
-.method{padding:26px 24px 40px;border-top:1px solid var(--line);background:var(--surface-1)}
-.method h2{margin:0 0 6px;font-size:17px;letter-spacing:-.01em}
-.mxi{margin:0 0 6px;font-size:13px;color:var(--text-secondary);line-height:1.5;
-  max-width:760px}
-.mxgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,400px),1fr));
-  gap:0 30px;margin-top:14px}
-.mx{padding:13px 0 14px;border-top:1px solid var(--line)}
-.mxh{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:5px}
-.mxh i{width:10px;height:10px;border-radius:3px;flex:none}
-.mxn{font-weight:650;font-size:13px}
-.mxw{font-size:10.5px;color:var(--text-muted);border:1px solid var(--line);
-  border-radius:20px;padding:1px 7px;white-space:nowrap}
-.mxs{font-size:12px;color:var(--text-secondary)}
-.mxc{margin:0 0 6px;font-size:12.5px;color:var(--text-secondary);line-height:1.5}
-.mxf{margin:0;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
-  font-size:11.5px;line-height:1.6;color:var(--text-muted);
-  background:var(--surface-0);border-radius:6px;padding:7px 9px;
-  overflow-wrap:anywhere}
-.mxfc{margin-bottom:9px;color:var(--text-primary);font-size:12.5px}
 
 /* Short viewports cannot fit the summary under the cards, and .screen clips
    rather than scrolls, so half of it would vanish silently. Hide it outright;
    the full method section below the fold still carries every definition. */
-@media (max-height: 860px) {
-  .summary{display:none}
-}
-
 /* Phones: the desktop layout is a fixed-height two-column grid with hover-only
    formulas. Touch never fires a title tooltip, so the formula is rendered inline
    here instead, and the page is allowed to scroll. */
 @media (max-width: 900px) {
   body{height:auto;min-height:100vh;overflow:visible;display:block}
+  /* .screen pins 100vh and clips on desktop; on a phone that would hide
+     everything past the first viewport, so release it here too. */
+  .screen{height:auto;overflow:visible;display:block}
   header{padding:13px 15px 10px}
   h1{font-size:16px}
   .sub{font-size:12px}
@@ -155,8 +177,9 @@ footer p{margin:0 0 3px}
   .score{font-size:20px}
   .axrow{grid-template-columns:104px 1fr 32px}
   footer{grid-template-columns:1fr;gap:15px;padding:13px 15px 20px}
-  .method{padding:12px 13px}
-  .mxf{font-size:11px}
+  .summary{min-height:0}
+  .sdetail{overflow:visible}
+  .srd{white-space:normal}
 }
 </style></head><body>
 <div class="screen">
@@ -231,7 +254,7 @@ footer p{margin:0 0 3px}
             14.7h median review</span>
         </span>
         <span class="score">76.2</span>
-      </button><section class="summary"><div class="sh">What the five metrics mean<span class="shx">full formulas below &darr;</span></div><div class="sr"><i style="background:var(--blast-radius)"></i><span class="srn">Blast radius</span><span class="srw">30</span><span class="srd">Risk-weighted delivery on dangerous ground.</span></div><div class="sr"><i style="background:var(--review-leverage)"></i><span class="srn">Review leverage</span><span class="srw">25</span><span class="srd">Whose review judgement the codebase relies on.</span></div><div class="sr"><i style="background:var(--force-multiplier)"></i><span class="srn">Force multiplier</span><span class="srw">20</span><span class="srd">Changes how everyone else, and every agent, works.</span></div><div class="sr"><i style="background:var(--unblocking-speed)"></i><span class="srn">Unblocking speed</span><span class="srw">15</span><span class="srd">Latency removed from other people&#x27;s work.</span></div><div class="sr"><i style="background:var(--fix-forward)"></i><span class="srn">Fix-forward</span><span class="srw">10</span><span class="srd">Repairs shipped code, especially code they did not write.</span></div></section></div>
+      </button><section class="summary"><div class="sh">What the five metrics mean<span class="shx">hover or click a metric</span></div><div class="srlist"><button class="sr" data-metric="blast_radius" aria-current="false"><i style="background:var(--blast-radius)"></i><span class="srn">Blast radius</span><span class="srw">30</span></button><button class="sr" data-metric="review_leverage" aria-current="false"><i style="background:var(--review-leverage)"></i><span class="srn">Review leverage</span><span class="srw">25</span></button><button class="sr" data-metric="force_multiplier" aria-current="false"><i style="background:var(--force-multiplier)"></i><span class="srn">Force multiplier</span><span class="srw">20</span></button><button class="sr" data-metric="unblocking_speed" aria-current="false"><i style="background:var(--unblocking-speed)"></i><span class="srn">Unblocking speed</span><span class="srw">15</span></button><button class="sr" data-metric="fix_forward" aria-current="false"><i style="background:var(--fix-forward)"></i><span class="srn">Fix-forward</span><span class="srw">10</span></button></div><div class="sdetail" id="sdetail"></div></section></div>
   <div class="panel" id="panel"></div>
 </main>
 <footer>
@@ -244,11 +267,12 @@ footer p{margin:0 0 3px}
   </div>
 </footer>
 </div>
-<section class="method"><h2>How each metric is calculated</h2><p class="mxi">Each axis total is log1p-compressed, then scaled 0 to 100 across the 134 eligible engineers, so 100 is the best observed. Log scaling is load-bearing: one account merges 19.7 PRs a day, and on a linear scale it alone set the anchor.</p><p class="mxf mxfc">score = &Sigma; (weight &times; axis) &divide; 100</p><div class="mxgrid"><article class="mx"><div class="mxh"><i style="background:var(--blast-radius)"></i><span class="mxn">Blast radius</span><span class="mxw">weight 30</span><span class="mxs">Risk-weighted delivery on dangerous ground.</span></div><p class="mxc">Rewards moving dangerous ground, not moving a lot of ground. A change to authentication or a ClickHouse migration counts far more than one to a product surface, and a change spanning several teams&#x27; code counts more than one confined to your own.</p><p class="mxf">1.0 per PR merged to master  ×3 if it touches a CODEOWNERS path  ×1.5 if it is a migration  ×(1 + 0.5 per owning team touched)  ×0.6 if declared fully autonomous</p></article><article class="mx"><div class="mxh"><i style="background:var(--review-leverage)"></i><span class="mxn">Review leverage</span><span class="mxw">weight 25</span><span class="mxs">Whose review judgement the codebase relies on.</span></div><p class="mxc">Reviewer assignment here is automated, so being asked carries no signal. Choosing to review outside your own team&#x27;s code does, and so does asking for changes rather than approving. Bot reviewers are excluded entirely: they outnumber the busiest human roughly 8 to 1.</p><p class="mxf">1.0 per review given to another human  ×3 on a CODEOWNERS path  ×2 outside the reviewer&#x27;s own team  ×1.5 for changes-requested  ×(1 + threads ÷ 10)</p></article><article class="mx"><div class="mxh"><i style="background:var(--force-multiplier)"></i><span class="mxn">Force multiplier</span><span class="mxw">weight 20</span><span class="mxs">Changes how everyone else, and every agent, works.</span></div><p class="mxc">Edits to the rules and tooling the whole repo runs on: AGENTS.md, the 238 agent skills, ownership files, CI, and shared tooling. A merged skill is executable governance — it changes what every agent in the repo does next. None of this shows up in a feature count.</p><p class="mxf">1.0 per governance or tooling file changed (AGENTS.md, SKILL.md, owners.yaml, CODEOWNERS, .github/workflows, tools/, bin/, cli/)  ×2 when that file governs a CODEOWNERS path</p></article><article class="mx"><div class="mxh"><i style="background:var(--unblocking-speed)"></i><span class="mxn">Unblocking speed</span><span class="mxw">weight 15</span><span class="mxs">Latency removed from other people&#x27;s work.</span></div><p class="mxc">The highest-variance signal in the dataset. Shipping volume varies about 3× between engineers; review turnaround varies 33×. In a repo merging 150 PRs a day, reviewing in 1.5 hours instead of 49 removes days of waiting from other people&#x27;s work while never appearing in your own PR count.</p><p class="mxf">Median hours from PR opened to their review, inverted on a log scale.  Repo baseline: p25 1.5h · median 13.5h · p75 49.1h</p></article><article class="mx"><div class="mxh"><i style="background:var(--fix-forward)"></i><span class="mxn">Fix-forward</span><span class="mxw">weight 10</span><span class="mxs">Repairs shipped code, especially code they did not write.</span></div><p class="mxc">Merging to master deploys to production, so repair work is real ownership. Picking up someone else&#x27;s breakage counts double. Reverts are not scored: only 8 exist across 4,789 sampled PRs because PostHog fixes forward — 45.5% of merged PRs are fixes against 40.1% features.</p><p class="mxf">1.0 per fix() PR merged to master  ×3 on a CODEOWNERS path  ×2 when the path&#x27;s most recent feat() came from someone else</p></article></div></section>
 <script id="report" type="application/json">{"window": {"start": "2026-04-28T00:00:00+00:00", "end": "2026-08-18T10:17:41+00:00", "days": 112}, "totals": {"prs_fetched": 15159, "merged_to_master": 14840, "stack_layers_excluded": 319, "bot_authored_excluded": 1083, "eligible_engineers": 134, "eligibility_fallback_fired": false}, "weights": {"blast_radius": 30.0, "review_leverage": 25.0, "force_multiplier": 20.0, "unblocking_speed": 15.0, "fix_forward": 10.0}, "engineers": [{"login": "rnegron", "composite": 82.2, "rank": 1, "axes": {"blast_radius": 80.3, "review_leverage": 91.5, "force_multiplier": 100.0, "unblocking_speed": 59.5, "fix_forward": 62.8}, "raw": {"merged_prs": 326, "reviews_given": 323, "median_review_hours": 3.1}, "evidence": {"review_leverage": [{"number": 70407, "title": "feat(stamphog): hosted PR review product with Slack digest", "score": 31.2}, {"number": 60849, "title": "perf(api): lazy DRF router, defer heavy imports off django.setup()", "score": 6.6}, {"number": 60849, "title": "perf(api): lazy DRF router, defer heavy imports off django.setup()", "score": 6.6}], "blast_radius": [{"number": 62780, "title": "chore: update ruff to 0.15.16", "score": 15.75}, {"number": 60440, "title": "chore(python): apply 3.13 typing sweep (UP043/UP035/B911)", "score": 12.0}, {"number": 69450, "title": "chore: bump ruff, uv, oxfmt dev tooling", "score": 12.0}], "force_multiplier": [{"number": 51686, "title": "refactor(hogli): restructure as standalone package in tools/hogli (v2)", "score": 45.0}, {"number": 56762, "title": "fix(ci): replace run_id with github.ref in concurrency groups", "score": 37.0}, {"number": 69450, "title": "chore: bump ruff, uv, oxfmt dev tooling", "score": 31.0}], "fix_forward": [{"number": 56762, "title": "fix(ci): replace run_id with github.ref in concurrency groups", "score": 6.0}, {"number": 71953, "title": "fix(devex): anchor the bin/ owners rule and scope owners:lint --live", "score": 6.0}, {"number": 73362, "title": "fix(ci): exclude new semgrep add-mask audit rule", "score": 6.0}]}}, {"login": "Gilbert09", "composite": 81.3, "rank": 2, "axes": {"blast_radius": 100.0, "review_leverage": 98.0, "force_multiplier": 61.9, "unblocking_speed": 29.8, "fix_forward": 100.0}, "raw": {"merged_prs": 2209, "reviews_given": 435, "median_review_hours": 15.2}, "evidence": {"blast_radius": [{"number": 67741, "title": "refactor(data-warehouse): isolate warehouse_sources behind its facade +\u2026", "score": 13.5}, {"number": 66076, "title": "chore(data-warehouse): route warehouse_sources consumers through the fa\u2026", "score": 12.0}, {"number": 66376, "title": "chore(data-modeling): relocate api views into presentation/views", "score": 12.0}], "fix_forward": [{"number": 67418, "title": "fix(data-warehouse): fix read_data schema for source-backed tables", "score": 6.0}, {"number": 72587, "title": "fix(data-warehouse): make internal-IP host error actionable", "score": 6.0}, {"number": 74575, "title": "fix(data-warehouse): fix clickhouse direct-connection metadata error", "score": 6.0}], "review_leverage": [{"number": 68872, "title": "feat(devex): distributed owners.yaml ownership with a single resolver", "score": 18.3}, {"number": 78917, "title": "feat(data-warehouse): add MotherDuck as a direct source connection", "score": 9.0}, {"number": 67117, "title": "feat(eng-analytics): emit CI signals to Signals", "score": 8.4}], "force_multiplier": [{"number": 63509, "title": "feat(data-warehouse): attribute source MCP tools and skills to warehous\u2026", "score": 7.0}, {"number": 65817, "title": "feat(data-warehouse): move temporal data-imports into warehouse_sources", "score": 5.0}, {"number": 63931, "title": "chore(data-warehouse): exempt warehouse source changes from stamphog au\u2026", "score": 4.0}]}}, {"login": "pauldambra", "composite": 79.8, "rank": 3, "axes": {"blast_radius": 88.0, "review_leverage": 86.3, "force_multiplier": 79.1, "unblocking_speed": 56.9, "fix_forward": 74.9}, "raw": {"merged_prs": 642, "reviews_given": 200, "median_review_hours": 3.6}, "evidence": {"review_leverage": [{"number": 62726, "title": "perf(devex): cut setup-time import chains into the HogQL/schema layer", "score": 8.4}, {"number": 62726, "title": "perf(devex): cut setup-time import chains into the HogQL/schema layer", "score": 8.4}, {"number": 62726, "title": "perf(devex): cut setup-time import chains into the HogQL/schema layer", "score": 8.4}], "blast_radius": [{"number": 68740, "title": "fix(frontend): clear the ByRole name-query backlog, flip semgrep rule t\u2026", "score": 18.0}, {"number": 69087, "title": "perf(frontend): render hoggie illustrations as PNGs instead of inline S\u2026", "score": 7.5}, {"number": 62631, "title": "feat(billing): bill product_analytics and survey AI usage as Max credits", "score": 6.0}], "fix_forward": [{"number": 66941, "title": "fix(auth): avoid lazy-loading wide team row in sharing configuration", "score": 6.0}, {"number": 68740, "title": "fix(frontend): clear the ByRole name-query backlog, flip semgrep rule t\u2026", "score": 6.0}, {"number": 69937, "title": "fix(hogql): defer snowflake.connector off the hogql.query import path", "score": 6.0}], "force_multiplier": [{"number": 69171, "title": "chore(ci): migrate remaining paths-filter call sites to the vendored ac\u2026", "score": 28.0}, {"number": 68045, "title": "feat(stamphog): reduce denials that humans approve unchanged", "score": 18.0}, {"number": 68064, "title": "feat(stamphog): calibrate deny-list against 120 days of denial outcomes", "score": 16.0}]}}, {"login": "andrewm4894", "composite": 76.9, "rank": 4, "axes": {"blast_radius": 77.7, "review_leverage": 94.4, "force_multiplier": 86.5, "unblocking_speed": 45.0, "fix_forward": 59.1}, "raw": {"merged_prs": 377, "reviews_given": 353, "median_review_hours": 6.8}, "evidence": {"blast_radius": [{"number": 80746, "title": "fix(oauth): let credential-less CIMD private_key_jwt clients fall back \u2026", "score": 7.5}, {"number": 64601, "title": "fix(stamphog): require grep verification before flagging missing symbols", "score": 4.5}, {"number": 67520, "title": "fix(ci): keep stamphog review-threads query under github node limit", "score": 4.5}], "review_leverage": [{"number": 65180, "title": "feat: Coming Soon waitlist surveys (gated)", "score": 7.2}, {"number": 74651, "title": "feat(self-driving): gate pipeline stages on the self-driving credits qu\u2026", "score": 7.2}, {"number": 61545, "title": "feat(signals): artefacts as report response log", "score": 6.0}], "force_multiplier": [{"number": 71019, "title": "chore(signals): drop signals prefix from scout MCP tool names", "score": 31.0}, {"number": 66977, "title": "chore(signals): trim canonical scout descriptions to a sentence or two", "score": 22.0}, {"number": 67465, "title": "chore(signals): unwrap hard-wrapped prose in scout skills", "score": 22.0}], "fix_forward": [{"number": 67520, "title": "fix(ci): keep stamphog review-threads query under github node limit", "score": 6.0}, {"number": 80746, "title": "fix(oauth): let credential-less CIMD private_key_jwt clients fall back \u2026", "score": 6.0}, {"number": 64601, "title": "fix(stamphog): require grep verification before flagging missing symbols", "score": 3.0}]}}, {"login": "webjunkie", "composite": 76.2, "rank": 5, "axes": {"blast_radius": 81.9, "review_leverage": 87.5, "force_multiplier": 94.5, "unblocking_speed": 30.4, "fix_forward": 63.2}, "raw": {"merged_prs": 299, "reviews_given": 245, "median_review_hours": 14.7}, "evidence": {"blast_radius": [{"number": 62112, "title": "chore(devex): move cohorts and replay models to product apps", "score": 18.0}, {"number": 59191, "title": "chore(devex): split data_warehouse into warehouse_sources, data_modelin\u2026", "score": 15.75}, {"number": 55368, "title": "chore(devex): upgrade ty to 0.0.29 and enforce zero errors", "score": 15.0}], "force_multiplier": [{"number": 60692, "title": "chore: move query_performance_ai from products/ to tools/", "score": 50.0}, {"number": 68872, "title": "feat(devex): distributed owners.yaml ownership with a single resolver", "score": 43.0}, {"number": 68604, "title": "feat(stamphog): extract policy to .stamphog/, add author familiarity", "score": 33.0}], "review_leverage": [{"number": 68064, "title": "feat(stamphog): calibrate deny-list against 120 days of denial outcomes", "score": 7.8}, {"number": 68092, "title": "refactor(stamphog): single dependency-ecosystem table, per-ecosystem lo\u2026", "score": 7.8}, {"number": 66355, "title": "feat(billing): add billing alerts backend", "score": 7.2}], "fix_forward": [{"number": 60033, "title": "fix(devex): make auto-reviewer assignment resilient to stale team slugs", "score": 6.0}, {"number": 63951, "title": "fix(stamphog): hard-gate bot-authored PRs", "score": 6.0}, {"number": 69185, "title": "fix(stamphog): key review requirements on risky territory, not size tier", "score": 6.0}]}}], "all_ranked": [{"login": "rnegron", "composite": 82.2}, {"login": "Gilbert09", "composite": 81.3}, {"login": "pauldambra", "composite": 79.8}, {"login": "andrewm4894", "composite": 76.9}, {"login": "webjunkie", "composite": 76.2}, {"login": "skoob13", "composite": 71.2}, {"login": "Piccirello", "composite": 68.5}, {"login": "sampennington", "composite": 68.4}, {"login": "robbie-c", "composite": 67.5}, {"login": "tatoalo", "composite": 66.9}, {"login": "gantoine", "composite": 66.1}, {"login": "cat-ph", "composite": 65.8}, {"login": "ablaszkiewicz", "composite": 65.3}, {"login": "danielcarletti", "composite": 65.2}, {"login": "rafaeelaudibert", "composite": 64.4}, {"login": "Radu-Raicea", "composite": 62.2}, {"login": "lricoy", "composite": 61.5}, {"login": "hpouillot", "composite": 61.3}, {"login": "MattPua", "composite": 61.2}, {"login": "haacked", "composite": 61.0}, {"login": "joshsny", "composite": 59.8}, {"login": "arthurdedeus", "composite": 59.5}, {"login": "eli-r-ph", "composite": 59.0}, {"login": "thmsobrmlr", "composite": 58.9}, {"login": "sakce", "composite": 58.9}, {"login": "arnohillen", "composite": 58.7}, {"login": "adamleithp", "composite": 58.4}, {"login": "mariusandra", "composite": 58.2}, {"login": "DanielVisca", "composite": 58.0}, {"login": "benjackwhite", "composite": 57.4}, {"login": "nickbest-ph", "composite": 57.2}, {"login": "frankh", "composite": 57.2}, {"login": "orian", "composite": 57.0}, {"login": "MarconLP", "composite": 56.4}, {"login": "z0br0wn", "composite": 56.3}, {"login": "fercgomes", "composite": 56.0}, {"login": "TueHaulund", "composite": 55.7}, {"login": "charlesvien", "composite": 55.6}, {"login": "dmarchuk", "composite": 55.2}, {"login": "VojtechBartos", "composite": 55.0}, {"login": "cvolzer3", "composite": 54.5}, {"login": "mayteio", "composite": 54.4}, {"login": "jose-sequeira", "composite": 53.8}, {"login": "carlos-marchal-ph", "composite": 53.1}, {"login": "thiagosalvatore", "composite": 52.7}, {"login": "a-lider", "composite": 52.7}, {"login": "k11kirky", "composite": 52.5}, {"login": "jonmcwest", "composite": 52.0}, {"login": "brandonleung", "composite": 51.8}, {"login": "ksvat", "composite": 51.6}, {"login": "yasen-posthog", "composite": 51.3}, {"login": "richardsolomou", "composite": 51.2}, {"login": "andyzzhao", "composite": 51.2}, {"login": "lucasheriques", "composite": 51.1}, {"login": "jordanm-posthog", "composite": 51.0}, {"login": "dmarticus", "composite": 50.8}, {"login": "rorylshanks", "composite": 50.5}, {"login": "georgemunyoro", "composite": 50.5}, {"login": "Twixes", "composite": 50.5}, {"login": "mp-hog", "composite": 50.5}, {"login": "MattBro", "composite": 50.4}, {"login": "vdekrijger", "composite": 50.1}, {"login": "puemos", "composite": 49.9}, {"login": "EDsCODE", "composite": 49.7}, {"login": "sortafreel", "composite": 49.7}, {"login": "estefaniarabadan", "composite": 49.3}, {"login": "andehen", "composite": 48.9}, {"login": "veryayskiy", "composite": 48.4}, {"login": "ReeceJones", "composite": 47.8}, {"login": "xljones", "composite": 47.6}, {"login": "marandaneto", "composite": 47.1}, {"login": "adboio", "composite": 46.5}, {"login": "matheus-vb", "composite": 46.3}, {"login": "jurajmajerik", "composite": 46.0}, {"login": "feliperalmeida", "composite": 45.9}, {"login": "gesh", "composite": 45.9}, {"login": "fuziontech", "composite": 45.8}, {"login": "jabahamondes", "composite": 45.8}, {"login": "aspicer", "composite": 45.6}, {"login": "tomasfarias", "composite": 44.4}, {"login": "pl", "composite": 44.3}, {"login": "rossgray", "composite": 44.2}, {"login": "meikelmosby", "composite": 43.5}, {"login": "sinan-ku", "composite": 43.4}, {"login": "gustavohstrassburger", "composite": 42.9}, {"login": "pawel-cebula", "composite": 42.1}, {"login": "luke-belton", "composite": 41.9}, {"login": "oliverb123", "composite": 41.9}, {"login": "rodrigoi", "composite": 40.5}, {"login": "fasyy612", "composite": 40.5}, {"login": "andrewjmcgehee", "composite": 39.3}, {"login": "abigailbramble", "composite": 39.0}, {"login": "jonathanlab", "composite": 37.7}, {"login": "bciaraldi", "composite": 37.3}, {"login": "patricio-posthog", "composite": 36.4}, {"login": "slshults", "composite": 35.2}, {"login": "langesven", "composite": 34.6}, {"login": "turnipdabeets", "composite": 33.7}, {"login": "benben", "composite": 33.5}, {"login": "nicowaltz", "composite": 32.1}, {"login": "tpgilmore", "composite": 29.9}, {"login": "abhischekt", "composite": 29.4}, {"login": "bill-ph", "composite": 29.3}, {"login": "dustinbyrne", "composite": 28.9}, {"login": "jghoman", "composite": 28.1}, {"login": "daniloc", "composite": 26.9}, {"login": "ioannisj", "composite": 26.7}, {"login": "joethreepwood", "composite": 25.6}, {"login": "christiaan-ph", "composite": 24.2}, {"login": "ryans-posthog", "composite": 21.7}, {"login": "clr182", "composite": 21.4}, {"login": "jakesciotto", "composite": 20.8}, {"login": "darkopia", "composite": 20.7}, {"login": "mjwarren3", "composite": 20.6}, {"login": "dkarasiewicz", "composite": 18.1}, {"login": "gewenyu99", "composite": 17.5}, {"login": "phillram", "composite": 16.7}, {"login": "rubychilds", "composite": 16.1}, {"login": "mcoll-posthog", "composite": 15.5}, {"login": "Z3r0Sum", "composite": 14.9}, {"login": "willwearing", "composite": 14.0}, {"login": "eleftheriatrivyzaki", "composite": 13.6}, {"login": "kyleswank", "composite": 13.3}, {"login": "annaszell", "composite": 13.1}, {"login": "fivestarspicy", "composite": 11.8}, {"login": "marco-g-pm", "composite": 11.1}, {"login": "seanpem", "composite": 11.0}, {"login": "ceyniustranberg", "composite": 10.7}, {"login": "raquelmsmith", "composite": 8.8}, {"login": "HaynesPostHog", "composite": 8.7}, {"login": "okxint", "composite": 8.0}, {"login": "igennova", "composite": 5.6}, {"login": "sufi-ph", "composite": 5.5}, {"login": "ryangchung", "composite": 5.0}], "sensitivity": {"top5": ["rnegron", "Gilbert09", "pauldambra", "andrewm4894", "webjunkie"], "stable": false, "variants_tested": 32, "churn": ["Gilbert09", "skoob13", "webjunkie"]}, "caveats": ["Org membership is 92% private, so contributor type is inferred.", "Bots excluded by __typename; they outnumber human reviewers 8:1.", "Stack layers excluded; PostHog encourages stacking, so counts mislead.", "Axis totals log-scaled so one 19.7 PRs/day account cannot set the scale.", "Ranks 3-5 are a cluster, not an ordering.", "Work outside this repo is invisible: design, incidents, support rotation."]}</script>
 <script>
 const REPORT = JSON.parse(document.getElementById('report').textContent);
 const LABELS = {"blast_radius": "Blast radius", "review_leverage": "Review leverage", "force_multiplier": "Force multiplier", "unblocking_speed": "Unblocking speed", "fix_forward": "Fix-forward"};
+const META = {"blast_radius": {"short": "Risk-weighted delivery on dangerous ground.", "captures": "Rewards moving dangerous ground rather than a lot of it. A change to authentication or a ClickHouse migration counts far more than one to a product surface.", "formula": "1.0 per PR merged to master  ×3 if it touches a CODEOWNERS path  ×1.5 if it is a migration  ×(1 + 0.5 per owning team touched)  ×0.6 if declared fully autonomous"}, "review_leverage": {"short": "Whose review judgement the codebase relies on.", "captures": "Reviewer assignment is automated here, so being asked carries no signal. Choosing to review outside your own team's code does, and so does requesting changes.", "formula": "1.0 per review given to another human  ×3 on a CODEOWNERS path  ×2 outside the reviewer's own team  ×1.5 for changes-requested  ×(1 + threads ÷ 10)"}, "force_multiplier": {"short": "Changes how everyone else, and every agent, works.", "captures": "Edits to the rules and tooling the whole repo runs on. A merged skill is executable governance: it changes what every agent in the repo does next.", "formula": "1.0 per governance or tooling file changed (AGENTS.md, SKILL.md, owners.yaml, CODEOWNERS, .github/workflows, tools/, bin/, cli/)  ×2 when that file governs a CODEOWNERS path"}, "unblocking_speed": {"short": "Latency removed from other people's work.", "captures": "The highest-variance signal here. Shipping volume varies about 3x between engineers; review turnaround varies 33x, and never shows in your own PR count.", "formula": "Median hours from PR opened to their review, inverted on a log scale.  Repo baseline: p25 1.5h · median 13.5h · p75 49.1h"}, "fix_forward": {"short": "Repairs shipped code, especially code they did not write.", "captures": "Merging to master deploys to production, so repair work is real ownership. Reverts are not scored: only 8 exist in 4,789 sampled PRs, because PostHog fixes forward.", "formula": "1.0 per fix() PR merged to master  ×3 on a CODEOWNERS path  ×2 when the path's most recent feat() came from someone else"}};
+const WEIGHTS = {"blast_radius": 30, "review_leverage": 25, "force_multiplier": 20, "unblocking_speed": 15, "fix_forward": 10};
 const panel = document.getElementById('panel');
 
 function show(login) {
@@ -272,6 +296,28 @@ function show(login) {
 
 document.querySelectorAll('.card').forEach(c =>
   c.addEventListener('click', () => show(c.dataset.login)));
+
+// Metric key: hover previews, click pins. Pinning matters on touch, where
+// there is no hover at all, and for anyone reading a long formula.
+const detail = document.getElementById('sdetail');
+const rows = [...document.querySelectorAll('.sr')];
+let pinned = rows[0].dataset.metric;
+
+function showMetric(key) {
+  const m = META[key];
+  rows.forEach(r => r.setAttribute('aria-current', String(r.dataset.metric === key)));
+  detail.innerHTML = `<p class="sdh"><b>${LABELS[key]}</b> &middot; weight ${WEIGHTS[key]}
+    &middot; ${m.short}</p><p class="sdc">${m.captures}</p><p class="sdf">${m.formula}</p>`;
+}
+
+rows.forEach(r => {
+  r.addEventListener('mouseenter', () => showMetric(r.dataset.metric));
+  r.addEventListener('focus', () => showMetric(r.dataset.metric));
+  r.addEventListener('click', () => { pinned = r.dataset.metric; showMetric(pinned); });
+});
+document.querySelector('.summary')
+  .addEventListener('mouseleave', () => showMetric(pinned));
+showMetric(pinned);
 if (REPORT.engineers.length) show(REPORT.engineers[0].login);
 </script>
 </body></html>
