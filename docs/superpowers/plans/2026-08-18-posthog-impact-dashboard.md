@@ -16,7 +16,8 @@
 - `CLAUDE.md` files are excluded from governance scoring — all 44 are symlinks to the sibling `AGENTS.md`.
 - Axis weights: blast_radius 30, review_leverage 25, force_multiplier 20, unblocking_speed 15, fix_forward 10. Sum = 100.
 - Eligibility, pre-committed: ≥ 5 merged `master` PRs **or** ≥ 10 human reviews given. Single pre-committed fallback: if the pool is < 30 engineers, both thresholds halve once and the dashboard reports it.
-- Each axis is min-max normalized to 0–100 before weighting. 100 = best observed on that axis.
+- Each axis is **log1p-transformed then min-max scaled** to 0–100 before weighting. Plain min-max was measured and rejected: one 19.7-PR/day account pushed the median field score to 4.9/100. See spec §1a.
+- The published top 5 is expected to report `stable=False`; ranks 3–5 render as a labelled statistical cluster, not a false ordering. Do NOT tune weights to make it stable.
 - Every unit test runs offline against committed fixtures. No test may touch the network.
 - Type annotations on every function signature. `mypy --strict` must pass.
 - Dashboard must fit 1440×900 with no vertical scroll.
@@ -290,7 +291,7 @@ Expected: 8 passed
 
 - [ ] **Step 7: Lint and type-check**
 
-Run: `uv run ruff check . && uv run ruff format . && uv run mypy`
+Run: `uv run ruff format . && uv run ruff check . && uv run mypy`
 Expected: no errors
 
 - [ ] **Step 8: Commit**
@@ -442,7 +443,9 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
 
-TITLE_RE = re.compile(r"^\s*(feat|fix|chore|revert|refactor|docs|perf|test)\s*(?:\(([^)]*)\))?\s*:", re.I)
+TITLE_RE = re.compile(
+    r"^\s*(feat|fix|chore|revert|refactor|docs|perf|test)\s*(?:\(([^)]*)\))?\s*:", re.I
+)
 
 HUMAN_DRIVEN = "Human-driven"
 FULLY_AUTONOMOUS = "Fully autonomous"
@@ -484,7 +487,8 @@ def _dt(value: str | None) -> datetime | None:
 
 
 def _is_bot(actor: dict[str, Any] | None) -> bool:
-    return bool(actor) and actor.get("__typename") == "Bot"
+    # `is not None` rather than bool(actor): mypy --strict does not narrow through bool().
+    return actor is not None and actor.get("__typename") == "Bot"
 
 
 @dataclass(frozen=True)
@@ -565,7 +569,7 @@ Expected: 11 passed
 
 - [ ] **Step 6: Lint and type-check**
 
-Run: `uv run ruff check . && uv run ruff format . && uv run mypy`
+Run: `uv run ruff format . && uv run ruff check . && uv run mypy`
 Expected: no errors
 
 - [ ] **Step 7: Commit**
@@ -784,7 +788,7 @@ Expected: 10 passed
 
 - [ ] **Step 5: Lint and type-check**
 
-Run: `uv run ruff check . && uv run ruff format . && uv run mypy`
+Run: `uv run ruff format . && uv run ruff check . && uv run mypy`
 Expected: no errors
 
 - [ ] **Step 6: Commit**
@@ -1168,7 +1172,31 @@ def test_normalize_maps_best_to_hundred_and_worst_to_zero() -> None:
     out = normalize({"a": 10.0, "b": 0.0, "c": 5.0})
     assert out["a"] == 100.0
     assert out["b"] == 0.0
-    assert out["c"] == 50.0
+
+
+def test_normalize_is_log_scaled_not_linear() -> None:
+    """Halving the raw value must NOT halve the score - that is the whole point.
+
+    log1p(5)/log1p(10) = 0.747, so the midpoint sits at ~74.7 rather than 50.
+    A linear scale is what let one outlier crush the field to a median of 4.9.
+    """
+    out = normalize({"a": 10.0, "b": 0.0, "c": 5.0})
+    assert out["c"] == pytest.approx(74.7, abs=0.1)
+
+
+def test_normalize_resists_a_single_extreme_outlier() -> None:
+    """Regression test for the real failure: one 2209-PR account among ordinary ones."""
+    field = {f"e{i}": float(i + 1) for i in range(20)}
+    field["outlier"] = 2209.0
+    out = normalize(field)
+    median_log = sorted(v for k, v in out.items() if k != "outlier")[10]
+    # Assert the property, not a guessed constant. A first draft of this test
+    # pinned `> 30.0` before measuring and failed at the real value of 25.6.
+    median_linear = 100.0 * (10.5 - 1.0) / (2209.0 - 1.0)
+    assert median_linear < 1.0, "linear scaling should crush the field"
+    assert median_log > 20 * median_linear, (
+        f"log scaling lifted the median only {median_log / median_linear:.0f}x"
+    )
 
 
 def test_normalize_handles_all_equal_without_dividing_by_zero() -> None:
@@ -1189,8 +1217,16 @@ def test_inverse_log_scores_fast_reviewers_highest() -> None:
 
 
 def test_eligibility_admits_on_either_threshold() -> None:
-    pool, halved = eligible({"a": 5, "b": 0, "c": 1}, {"a": 0, "b": 10, "c": 1})
+    """Either threshold admits; `c` meets neither."""
+    pool, _ = eligible({"a": 5, "b": 0, "c": 1}, {"a": 0, "b": 10, "c": 1})
     assert pool == {"a", "b"}
+
+
+def test_fallback_does_not_fire_when_the_pool_is_large_enough() -> None:
+    """A tiny pool always trips the fallback, so this needs >= MIN_POOL people."""
+    pr_counts = {f"e{i}": 9 for i in range(40)}
+    pool, halved = eligible(pr_counts, {})
+    assert len(pool) == 40
     assert halved is False
 
 
@@ -1219,12 +1255,24 @@ def test_sensitivity_reports_a_stable_top_five() -> None:
 
 
 def test_sensitivity_detects_an_unstable_ranking() -> None:
-    """One axis disagrees violently with the rest, so weight changes reorder the top 5."""
+    """Two near-tied engineers whose strength sits in axes with opposite weights.
+
+    An earlier version of this test built a monotonic scenario that could never
+    be unstable, so it passed while never exercising the detection path at all -
+    it would have passed against a sensitivity() hardcoded to return True.
+    """
     names = list(WEIGHTS)
-    axis_scores = {n: {f"e{i}": float(100 - i * 2) for i in range(8)} for n in names}
-    axis_scores[names[0]] = {f"e{i}": float(i * 14) for i in range(8)}
+    axis_scores: dict[str, dict[str, float]] = {
+        n: {f"e{i}": 50.0 for i in range(8)} for n in names
+    }
+    for n in names:
+        axis_scores[n]["eA"] = 0.0
+        axis_scores[n]["eB"] = 0.0
+    axis_scores[names[0]]["eA"] = 100.0   # strongest on the heaviest axis
+    axis_scores[names[3]]["eB"] = 100.0   # strongest on a light axis
     result = sensitivity(axis_scores, WEIGHTS)
     assert result["stable"] is False
+    assert result["churn"]
 ```
 
 - [ ] **Step 2: Run the tests and watch them fail**
@@ -1266,12 +1314,21 @@ TOP_N = 5
 
 
 def normalize(values: Mapping[str, float]) -> dict[str, float]:
+    """Log-compress, then scale to 0-100.
+
+    The log is not cosmetic. Measured on the real data, plain min-max put the
+    median score of the other 133 eligible engineers at 4.9/100, because one
+    account merged 2,209 PRs in 112 days and set the anchor alone. log1p moves
+    that median to 52.8 and widens the rank 3-5 separation from 0.35 to 3.56
+    points, without discarding magnitude the way percentile rank does.
+    """
     if not values:
         return {}
-    lo, hi = min(values.values()), max(values.values())
+    logs = {k: math.log1p(max(v, 0.0)) for k, v in values.items()}
+    lo, hi = min(logs.values()), max(logs.values())
     if hi == lo:
         return dict.fromkeys(values, 0.0)
-    return {k: 100.0 * (v - lo) / (hi - lo) for k, v in values.items()}
+    return {k: 100.0 * (v - lo) / (hi - lo) for k, v in logs.items()}
 
 
 def normalize_inverse_log(values: Mapping[str, float]) -> dict[str, float]:
@@ -1353,7 +1410,7 @@ Expected: 10 passed
 
 - [ ] **Step 5: Run the whole suite, lint and type-check**
 
-Run: `uv run pytest && uv run ruff check . && uv run ruff format . && uv run mypy`
+Run: `uv run pytest && uv run ruff format . && uv run ruff check . && uv run mypy`
 Expected: 48 passed, no lint or type errors
 
 - [ ] **Step 6: Commit**
@@ -1590,6 +1647,10 @@ from impact.score import (
 
 EVIDENCE_PER_AXIS = 3
 
+# The pagination walk reached this updatedAt, and GitHub guarantees
+# updatedAt >= mergedAt, so coverage is provably complete from here forward.
+COMPLETE_FROM = "2026-04-28T00:00:00+00:00"
+
 
 def load_ownership_dir(ownership_dir: Path) -> Ownership:
     owners = {
@@ -1636,12 +1697,15 @@ def build_report(raw_path: Path, ownership_dir: Path) -> dict[str, Any]:
     for pr in prs:
         if not pr.is_bot_author and not pr.is_stack_layer:
             pr_counts[pr.author] += 1
-        for name, fn in (
-            ("blast_radius", lambda: ax.blast_radius(pr, own)),
-            ("force_multiplier", lambda: ax.force_multiplier(pr, own)),
-            ("fix_forward", lambda: ax.fix_forward(pr, own, prior_feat_author)),
+        # Evaluated eagerly rather than as lambdas: the closures captured the loop
+        # variable `pr` (ruff B023) and were untyped calls under mypy --strict.
+        # They were only ever invoked within the same iteration, so calling them
+        # directly is identical in behaviour and safe against later refactoring.
+        for name, value in (
+            ("blast_radius", ax.blast_radius(pr, own)),
+            ("force_multiplier", ax.force_multiplier(pr, own)),
+            ("fix_forward", ax.fix_forward(pr, own, prior_feat_author)),
         ):
-            value = fn()
             if value > 0:
                 tallies[name][pr.author] += value
                 evidence[pr.author][name].append(
@@ -1700,7 +1764,10 @@ def build_report(raw_path: Path, ownership_dir: Path) -> dict[str, Any]:
     ]
 
     return {
-        "window": {"start": min(p.merged_at for p in prs).isoformat(),
+        # NOT min(mergedAt): the fetch kept PRs merged from 2026-04-20 but only
+        # walked back to updatedAt 2026-04-28, so coverage before that is partial.
+        # Reporting the earliest merge would claim completeness we do not have.
+        "window": {"start": COMPLETE_FROM,
                    "end": max(p.merged_at for p in prs).isoformat(),
                    "days": 112},
         "totals": {
@@ -1802,7 +1869,6 @@ fact."
 ```python
 import json
 import re
-from pathlib import Path
 
 from impact.render import AXIS_COLORS, render, why_line
 
@@ -2206,7 +2272,7 @@ Replace the placeholder sections written in the repo shell with: the live URL, t
 - [ ] **Step 5: Final verification gauntlet**
 
 ```bash
-uv run pytest -q && uv run ruff check . && uv run ruff format --check . && uv run mypy
+uv run pytest -q && uv run ruff format --check . && uv run ruff check . && uv run mypy
 ```
 
 Expected: all green. Paste the real output into the PR description — do not summarise it.

@@ -4,6 +4,7 @@
 **Date:** 2026-08-18
 **Repo under analysis:** [PostHog/posthog](https://github.com/PostHog/posthog)
 **Window:** 2026-04-28 → 2026-08-18 (112 days; the brief requires ≥ 90)
+**Revision:** v2 — normalisation and outlier handling changed after an independent review run against real data
 
 ## Problem
 
@@ -20,10 +21,11 @@ each of them is measurably corrupted by PostHog's own tooling.
 Impact is **the risk a person absorbs and the leverage they create for others**,
 not the volume they emit.
 
-Five axes, each normalized to 0–100 across eligible engineers, then combined by
-a weighted sum. Normalization comes first because the raw units differ by orders
-of magnitude, and an un-normalized sum would let review count swamp every other
-axis.
+Five axes, each **log1p-transformed then min-max scaled** to 0–100 across
+eligible engineers, then combined by a weighted sum. Normalisation comes first
+because the raw units differ by orders of magnitude; the log comes first because
+the *distribution* does too. See §1a — this was changed after measurement, not
+chosen up front.
 
 | # | Axis | Weight | Question it answers |
 |---|------|-------:|---------------------|
@@ -37,6 +39,53 @@ Weights are provisional. They are pinned only after the first full scoring run,
 and the dashboard ships a **sensitivity check**: the published top 5 must be
 stable when every weight is perturbed ±10 points. If it is not stable, the
 instability is reported rather than hidden.
+
+### 1a. Why log1p, and what plain min-max did
+
+Plain min-max was specified first and measured wrong. One account, `Gilbert09`,
+merged **2,209 PRs in 112 days — 19.7 per day**, 3.4× the next engineer. Anchoring
+100 to that value crushed everyone else: the **median normalised score across the
+other 133 eligible engineers was 4.9 out of 100.** The ranking became a report on
+one outlier rather than on the field.
+
+The account is not a bot — GraphQL types it `User` — but **56.9% of its PRs
+declare `Fully autonomous`**, against 0–2.3% for every other top-ranked engineer
+and 9.9% repo-wide. It is a human running agents at scale. Median 3 changed files,
+highly formulaic titles (`fix(data-imports): stop retrying …`).
+
+That exposed a design error worth stating plainly: the ×0.6 autonomy discount
+reduces the value of each agent-authored PR, but the distortion is in **volume**,
+not per-PR value. 2,209 PRs at 0.6 still buries 326 human-driven ones. Discounting
+per-PR value was the wrong lever.
+
+Three schemes were then measured against the real data:
+
+| Scheme | rank 3–5 separation | Median field score |
+|---|---:|---:|
+| min-max | 0.35 pts | 4.9 |
+| **log1p + min-max** | **3.56 pts** | **52.8** |
+| percentile rank | 1.01 pts | 49.6 |
+
+`log1p` wins on both: the field decompresses and separation at the cut improves
+tenfold. Percentile also decompresses but discards magnitude, bunching the whole
+top six into 84–90. Under `log1p`, `Gilbert09` moves from a dominant #1 to a
+defensible #2 — still high, because the work is real, without setting the scale
+for everyone else.
+
+Latency keeps its own inverse-log scaling (lower is better).
+
+### 1b. The top 5 is partly a tie, and the dashboard says so
+
+Under **every** scheme tested, `sensitivity()` returns `stable=False`. This is not
+a normalisation artifact — it is a property of the data. Ranks 3–5 land within
+**0.35 points** under min-max and 3.56 under log1p, and perturbing weights ±10
+exchanges them with `danielcarletti`, `MarconLP` and `skoob13`.
+
+The brief asks for a top 5, so five are shown. But ranks 3–5 are rendered as an
+explicitly labelled **statistical cluster**, not a false ordering, and the
+engineers who trade places with them under reweighting are named. A ranking that
+claims more precision than the data supports is the failure mode this whole
+sensitivity check exists to catch.
 
 ### Axis 1 — Blast radius shipped (30)
 
@@ -212,6 +261,10 @@ One page, one laptop screen (1440×900), no scrolling.
   rules are taken from `AGENTS.md`, which documents them authoritatively.
 - **Reviews are capped at 30 per PR and files at 60** in the fetch. PRs exceeding
   those keep a `totalCount`, so truncation is detectable and reported.
+- **Ranks 3–5 are not separable.** Stated above and on the dashboard.
+- **One account dominates raw volume** at 19.7 merged PRs/day with 56.9% declared
+  fully autonomous. Handled by log scaling, and disclosed rather than silently
+  smoothed away.
 - **Impact outside this repo is invisible** — design, incident command, mentoring
   in Slack, and work in PostHog's other repos do not appear. The dashboard says so.
 - **Support Hero rotation** (per-team, weekly, documented in CONTRIBUTING) is real
