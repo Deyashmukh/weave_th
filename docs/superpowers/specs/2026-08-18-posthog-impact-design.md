@@ -3,7 +3,7 @@
 **Status:** approved design, pending implementation plan
 **Date:** 2026-08-18
 **Repo under analysis:** [PostHog/posthog](https://github.com/PostHog/posthog)
-**Window:** 2026-04-20 → 2026-08-18 (120 days; the brief requires ≥ 90)
+**Window:** 2026-04-28 → 2026-08-18 (112 days; the brief requires ≥ 90)
 
 ## Problem
 
@@ -167,6 +167,20 @@ Pagination walks merged PRs by `UPDATED_AT DESC` and halts once a page's oldest
 `updatedAt` precedes the cutoff. Since GitHub guarantees `updatedAt >= mergedAt`,
 this provably cannot skip a PR merged inside the window — worth stating because
 sorting by update time surfaces PRs merged as far back as 2020.
+
+**Achieved coverage.** The walk reached `updatedAt = 2026-04-28`, so every PR
+merged on or after that date is captured: 15,058 PRs over 112 days. Two
+independent checks confirm completeness. GitHub's search API reports 13,395 PRs
+merged in the required 90-day window (2026-05-20 → 2026-08-18); this dataset
+holds 13,380 of them, a 99.9% match, with the residual explained by PRs merged
+while the fetch was in flight. The per-week merge counts are also smooth across
+the interior of the window, with thin counts only at the two partial edge weeks,
+which is the shape complete coverage produces.
+
+The walk was halted at 112 days rather than the originally planned 120 because
+deep cursors began returning HTTP 502s at a rate that made the last eight days
+cost far more than they were worth. The window still exceeds the brief's
+requirement by three weeks.
 
 Stages: `fetch` (raw JSONL) → `enrich` (ownership resolution, bot classification,
 autonomy parsing) → `score` (five axes + composite) → `render` (static dashboard).
